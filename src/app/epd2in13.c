@@ -383,8 +383,6 @@ static void EPD_BWR(int width, int height, int left, int top)
     EPD_2IN13_SendCommand(0x18);
     EPD_2IN13_SendData(0x80);       // 80: internal sensor 48: external sensor
 
-    // load lut
-    EPD_Lut(lut_full_bwr);
 }
 
 void EPD_2IN13_WriteRam(uint8_t *image, int width, int height, int left, int top, uint8_t is_red)
@@ -468,7 +466,7 @@ void EPD_Update()
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 132, 16, buf, 1);
 
     // date
-    const char *wstr[]={"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
+    const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
     System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 122, buf, 1);
 
@@ -482,10 +480,13 @@ void EPD_Update()
         epd_temp[i] = ~ucMirror[c];
     }
 
+    // full update every 30 mins
+    bool full_upd = (l->tm_min == 0 || l->tm_min == 30) ? true : false;
     EPD_BWR(296, 128, 0, 0);
+    if (!full_upd) EPD_Lut(lut_full_bwr);
     EPD_2IN13_WriteRam(epd_temp, 296, 128, 0, 0, 0);
     EPD_2IN13_WriteRam(NULL, 296, 128, 0, 0, 1);
-    EPD_2IN13_Display(0xc7);    // c7: by REG  f7: by OTP   b1: no display 
+    EPD_2IN13_Display(full_upd ? 0xf7 : 0xc7);    // c7: by REG  f7: by OTP   b1: no display 
     EPD_2IN13_ReadBusy();
     EPD_2IN13_Sleep();
     return;
