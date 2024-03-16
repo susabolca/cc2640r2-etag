@@ -585,8 +585,8 @@ const uint8_t ucSmallFont[]PROGMEM = {
 0x02,0x01,0x02,0x01,0x00,
 0x3c,0x26,0x23,0x26,0x3c};
 #endif
-
-#define MAX_CACHE 128 
+// reduce the u8Cache to reduce the RAM cosumption.
+#define MAX_CACHE 16 
 static uint8_t u8Cache[MAX_CACHE]; // for faster character drawing
 static volatile uint8_t u8End = 0;
 

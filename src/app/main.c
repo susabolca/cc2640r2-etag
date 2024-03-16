@@ -60,7 +60,10 @@
 #include "hal_assert.h"
 #include "bcomdef.h"
 #include "peripheral.h"
-#include "epd_peripheral.h"
+
+// tasks
+#include "task_ble.h"
+#include "task_epd.h"
 
 /* Header files required to enable instruction fetch cache */
 #include <inc/hw_memmap.h>
@@ -218,7 +221,7 @@ int main()
   SimpleBLEPeripheral_createTask();
 
   // EPD task
-  
+  TaskEPD_createTask();
   
   /* enable interrupts and start SYS/BIOS */
   BIOS_start();
@@ -377,6 +380,14 @@ static uint8_t rFSwitchNotifyCb(uint8_t eventType, uint32_t *eventArg,
 }
 #endif //CC1350_LAUNCHXL || POWER_SAVING
 
+#include <ti/sysbios/family/arm/m3/Hwi.h>
+// Debug
+uintptr_t *excPC = 0;
+uintptr_t *excCaller = 0;
+void execHandlerHook(Hwi_ExcContext *ctx)
+{
+    excPC = ctx->pc;
+    excCaller = ctx->lr;
 
-/*******************************************************************************
- */
+    while(2);
+}

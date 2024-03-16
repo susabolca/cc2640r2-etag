@@ -23,7 +23,7 @@
 
 #include "board.h"
 
-#include "epd_peripheral.h"
+#include "task_ble.h"
 
 
 // Advertising interval when device is discoverable (units of 625us, 160=100ms)
@@ -177,6 +177,9 @@ static uint8_t advertData[] =
   LO_UINT16(EPD_SERVICE_SERV_UUID),
   HI_UINT16(EPD_SERVICE_SERV_UUID)
 };
+
+// BLE mac address.
+uint8_t mac_address[6];
 
 // GAP GATT Attributes
 static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "Simple Peripheral";

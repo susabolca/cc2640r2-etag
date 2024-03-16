@@ -1,28 +1,16 @@
 /******************************************************************************
 
- @file       cc2640r2lp_board.c
+ @file       simple_peripheral.h
 
- @brief This file is a simple gateway to include the appropriate Board.c
-        file which is located in the following directories relative to this file:
-        - CC2640R2_LAUNCHXL
+ @brief This file contains the Simple Peripheral sample application
+        definitions and prototypes.
 
-        The project should set the include path to Board.h to point to
-        the Board.h in this directory.
-        This Board.h file will then define a symbol which is used in this
-        file to include the appropriate Board.c file which is found in
-        the same directory as Board.h
-        This way the project can look the same (and only include this Board.c)
-        file, when changing EM user only needs to update include path in
-        the project options.
-        Alternatively, the device specific board  files can just be included
-        directly in the project.
-
- Group: CMCU, LPC, SCS
+ Group: CMCU, SCS
  Target Device: CC2640R2
 
  ******************************************************************************
  
- Copyright (c) 2015-2017, Texas Instruments Incorporated
+ Copyright (c) 2013-2017, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -57,17 +45,35 @@
  Release Date: 2017-07-20 17:16:59
  *****************************************************************************/
 
-/*
- *   The location of this Board.h file depends on your project include path.
- *   Set it correctly to point to your CC2640R2_LAUNCHXL
- */
-#if defined(CC2640R2_LAUNCHXL)
-    #include "./CC2640R2_LAUNCHXL/Board.h"
-    #include "./CC2640R2_LAUNCHXL/CC2640R2_LAUNCHXL.c"
-#else
-    #error "Must define 'CC2640R2_LAUNCHXL'. Please set include path to point \
-    to appropriate device."
+#ifndef SIMPLEBLEPERIPHERAL_H
+#define SIMPLEBLEPERIPHERAL_H
+
+#ifdef __cplusplus
+extern "C"
+{
 #endif
 
+/*
+ * Task creation function for the Simple Peripheral.
+ */
+extern void SimpleBLEPeripheral_createTask(void);
 
+#if !defined(Display_DISABLE_ALL)
+/*
+ * Functions for menu action
+ */
+/* Actions for Menu: Start Device */
+bool SimpleBLEPeripheral_doStartDevice(uint8 index);
 
+/* Actions for Menu: Set PHY - Select */
+bool SimpleBLEPeripheral_doSetPhy(uint8 index);
+#endif  // !Display_DISABLE_ALL
+
+/*********************************************************************
+*********************************************************************/
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* SIMPLEBLEPERIPHERAL_H */

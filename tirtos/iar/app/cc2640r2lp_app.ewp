@@ -727,7 +727,7 @@
             <data>
                 <extensions></extensions>
                 <cmdline></cmdline>
-                <hasPrio>176</hasPrio>
+                <hasPrio>1</hasPrio>
                 <buildSequence>inputOutputBased</buildSequence>
             </data>
         </settings>
@@ -1258,7 +1258,7 @@
                 </option>
                 <option>
                     <name>RTConfigPath2</name>
-                    <state>$TOOLKIT_DIR$\INC\c\DLib_Config_Normal.h</state>
+                    <state>$TOOLKIT_DIR$\inc\c\DLib_Config_Normal.h</state>
                 </option>
                 <option>
                     <name>GBECoreSlave</name>
@@ -2339,12 +2339,6 @@
             <name>$PROJ_DIR$\..\..\..\src\app\epd2in13.h</name>
         </file>
         <file>
-            <name>$PROJ_DIR$\..\..\..\src\app\epd_peripheral.c</name>
-        </file>
-        <file>
-            <name>$PROJ_DIR$\..\..\..\src\app\epd_peripheral.h</name>
-        </file>
-        <file>
             <name>$PROJ_DIR$\..\..\..\src\app\OneBitDisplay.c</name>
         </file>
         <file>
@@ -2361,6 +2355,18 @@
             <excluded>
                 <configuration>FlashROM_StackLibrary</configuration>
             </excluded>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\src\app\task_ble.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\src\app\task_ble.h</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\src\app\task_epd.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\src\app\task_epd.h</name>
         </file>
         <file>
             <name>$SIMPLELINK_CORE_SDK_INSTALL_DIR$\source\ti\ble5stack\common\cc26xx\util.c</name>
@@ -2554,7 +2560,7 @@
     <group>
         <name>Startup</name>
         <file>
-            <name>$PROJ_DIR$\..\..\..\src\target\board.c</name>
+            <name>$PROJ_DIR$\..\..\..\src\target\CC2640R2_LAUNCHXL.c</name>
         </file>
         <file>
             <name>$PROJ_DIR$\..\config\ccfg_app_ble.c</name>

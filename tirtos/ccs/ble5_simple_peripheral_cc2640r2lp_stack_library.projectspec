@@ -81,8 +81,10 @@
             -I${XDC_CG_ROOT}/packages"
         />
 
+        
+        <pathVariable name="SDK_ROOT" path="C:\ti\simplelink_cc2640r2_sdk_1_40_00_45" scope="project"/>
         <pathVariable name="EXAMPLE_BLE_ROOT" path="../.." scope="project"/>
-        <pathVariable name="SRC_BLE_DIR" path="../../../../../../../source/ti/ble5stack" scope="project"/>
+        <pathVariable name="SRC_BLE_DIR" path="${SDK_ROOT}/source/ti/ble5stack" scope="project"/>
         <pathVariable name="TOOLS_BLE_DIR" path="${SRC_BLE_DIR}/../../../tools/ble5stack" scope="project"/>
 
         <!-- HAL/Common Folder -->

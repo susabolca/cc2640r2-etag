@@ -51,6 +51,7 @@
             -DSTACK_LIBRARY
             -DTBM_ACTIVE_ITEMS_ONLY
             -DUSE_ICALL
+            -DDisplay_DISABLE_ALL
             -Dxdc_runtime_Assert_DISABLE_ALL
             -Dxdc_runtime_Log_DISABLE_ALL
             -I${PROJECT_LOC}/Application
@@ -121,6 +122,7 @@
             -DTBM_ACTIVE_ITEMS_ONLY
             -DUSE_ICALL
             -DUSE_RCOSC
+            -DDisplay_DISABLE_ALL
             -Dxdc_runtime_Assert_DISABLE_ALL
             -Dxdc_runtime_Log_DISABLE_ALL
             -I${PROJECT_LOC}/Application
@@ -166,22 +168,27 @@
             --diag_suppress=16032-D"
         />
 
+        <pathVariable name="SDK_ROOT" path="C:\ti\simplelink_cc2640r2_sdk_1_40_00_45" scope="project"/>
         <pathVariable name="EXAMPLE_BLE_ROOT" path="../.." scope="project"/>
-        <pathVariable name="SRC_BLE_DIR" path="../../../../../../../source/ti/ble5stack" scope="project"/>
+        <pathVariable name="SRC_BLE_DIR" path="${SDK_ROOT}/source/ti/ble5stack" scope="project"/>
 
         <!-- Application Folder -->
-        <file path="SRC_BLE_DIR/common/cc26xx/board_key.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/common/cc26xx/board_key.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/common/cc26xx/rcosc/rcosc_calibration.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/common/cc26xx/rcosc/rcosc_calibration.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/src/app/simple_peripheral.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/src/app/simple_peripheral.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/src/app/simple_peripheral_menu.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/src/app/simple_peripheral_menu.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/common/cc26xx/menu/two_btn_menu.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/common/cc26xx/menu/two_btn_menu.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd2in13.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd2in13.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/OneBitDisplay.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/OneBitDisplay.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/obd.inl" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font16.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font16zh.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font60.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/task_ble.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/task_ble.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/task_epd.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/task_epd.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="SRC_BLE_DIR/common/cc26xx/util.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="SRC_BLE_DIR/common/cc26xx/util.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="SRC_BLE_DIR/common/cc26xx/rcosc/rcosc_calibration.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM_StackLibrary_RCOSC"/>
+        <file path="SRC_BLE_DIR/common/cc26xx/rcosc/rcosc_calibration.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM_StackLibrary_RCOSC"/>
 
         <!-- Drivers/ECC Folder -->
         <file path="SRC_BLE_DIR/common/cc26xx/ecc/ECCROMCC26XX.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Drivers/ECC" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
@@ -222,19 +229,21 @@
         <file path="SRC_BLE_DIR/host/gattservapp_util.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="PROFILES" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="SRC_BLE_DIR/profiles/roles/cc26xx/peripheral.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="PROFILES" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="SRC_BLE_DIR/profiles/roles/cc26xx/peripheral.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="PROFILES" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/profiles/simple_profile/cc26xx/simple_gatt_profile.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="PROFILES" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/profiles/simple_profile/simple_gatt_profile.h" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="PROFILES" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd_service.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="PROFILES" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd_service.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="PROFILES" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
 
         <!-- Startup Folder -->
-        <file path="SRC_BLE_DIR/target/board.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/tirtos/iar/config/ccfg_app_ble.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary"/>
+        <file path="EXAMPLE_BLE_ROOT/src/target/board.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/target/CC2640R2_LAUNCHXL.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/target/CC2640R2_LAUNCHXL.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/tirtos/iar/config/ccfg_app_ble.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary"/>
         <file path="SRC_BLE_DIR/common/cc26xx/rcosc/ccfg_app_ble_rcosc.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/src/app/main.c" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/main.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Startup" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
 
         <!-- TOOLS Folder -->
-        <file path="EXAMPLE_BLE_ROOT/tirtos/ccs/config/app_ble.cfg" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="SRC_BLE_DIR/common/cc26xx/ccs/cc26xx_app.cmd" openOnCreation="" excludeFromBuild="true" action="link" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/tirtos/ccs/config/ccs_compiler_defines.bcfg" openOnCreation="" excludeFromBuild="false" action="copy" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM"/>
-        <file path="EXAMPLE_BLE_ROOT/tirtos/ccs/config/ccs_linker_defines.cmd" openOnCreation="" excludeFromBuild="true" action="copy" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/tirtos/ccs/config/app_ble.cfg" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="SRC_BLE_DIR/common/cc26xx/ccs/cc26xx_app.cmd" openOnCreation="" excludeFromBuild="true" action="copy" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/tirtos/ccs/config/ccs_compiler_defines.bcfg" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM"/>
+        <file path="EXAMPLE_BLE_ROOT/tirtos/ccs/config/ccs_linker_defines.cmd" openOnCreation="" excludeFromBuild="true" action="link" targetDirectory="TOOLS" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
     </project>
 </projectSpec>

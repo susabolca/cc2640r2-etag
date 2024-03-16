@@ -1,28 +1,22 @@
 
 #include "epd2in13.h"
 
-//#include <ti/drivers/SPI.h>
-//#include <ti/drivers/spi/SPICC26XXDMA.h>
 #include <ti/sysbios/knl/Task.h>
 
 #include "board.h"
 
- // for debug
-//#include "inc/sdi_task.h"
 #include "util.h"
 #include <time.h>   // time
- 
 #include <ti/drivers/PIN.h>
 #include <ti/sysbios/hal/Seconds.h> // Seconds_get
+#include <xdc/runtime/System.h>     // snprintf
 
-#include <stdio.h>  // sprintf
-
+// OBD
 #include "OneBitDisplay.h"
-#include "font_60.h"
+#include "font60.h"
 #include "font16.h"
-//#include "font16zh.h"
-//#include "font30.h"
 
+// battery & temp
 #include <driverlib/aon_batmon.h>
 
 extern const uint8_t ucMirror[];
@@ -477,11 +471,6 @@ void EPD_2IN13_Display(uint8_t reg)
 
 void EPD_2IN13_Sleep(void)
 {
-#if 0
-    EPD_2IN13_SendCommand(0x22); //POWER OFF
-    EPD_2IN13_SendData(0xC3);
-    EPD_2IN13_SendCommand(0x20);
-#endif
     EPD_2IN13_SendCommand(0x10);    //enter deep sleep
     EPD_2IN13_SendData(0x01);       // 01: mode 1, 11: mode 2
 }
@@ -508,31 +497,31 @@ void EPD_Update()
     // wakeup EPD
     EPD_2IN13_Reset();
 
-    char buf[16];
+    char buf[32];
     obdCreateVirtualDisplay(&obd, 296, 128, epd_temp);
     obdFill(&obd, 0, 0);
 
     // mac address
-    sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
+    System_snprintf(buf, 32, "%02x:%02x:%02x:%02x:%02x:%02x",
             mac_address[0],mac_address[1],mac_address[2],
             mac_address[3],mac_address[4],mac_address[5]);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 16, buf, 1);
 
     // battery voltage
-    sprintf(buf, "%umv", INTFRAC2MV(AONBatMonBatteryVoltageGet()));
+    System_snprintf(buf, 32, "%umv", INTFRAC2MV(AONBatMonBatteryVoltageGet()));
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 216, 16, buf, 1);
 
     // time
-    sprintf(buf, "%02d:%02d", l->tm_hour, l->tm_min);
+    System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
     obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, 70, 85, buf, 1);
 
     // date
     //const char wstr[]={"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
-    sprintf(buf, "%u-%02u-%02u %d", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, l->tm_wday);
+    System_snprintf(buf, 32, "%u-%02u-%02u %d", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, l->tm_wday);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 122, buf, 1);
 
     // temperature
-    sprintf(buf, "%dC %dC", AONBatMonTemperatureGetDegC(), EPD_ReadTemp());
+    System_snprintf(buf, 32, "%dC %dC", AONBatMonTemperatureGetDegC(), EPD_ReadTemp());
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 216, 122, buf, 1);
 
     // endian
