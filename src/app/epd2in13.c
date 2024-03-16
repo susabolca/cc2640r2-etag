@@ -7,6 +7,7 @@
 
 #include "util.h"
 #include <time.h>   // time
+#include <stdint.h>   // uint8_t 
 #include <ti/drivers/PIN.h>
 #include <ti/sysbios/hal/Seconds.h> // Seconds_get
 #include <xdc/runtime/System.h>     // snprintf
@@ -31,10 +32,10 @@ extern const uint8_t ucMirror[];
 
 // gpio setting
 static PIN_Handle GPIOHandle = NULL;
-static PIN_State GPIOState;
+static PIN_State  GPIOState;
 static PIN_Config GPIOTable[] = {
   //EPD_POWER_PIN | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
-  EPD_BUSY_PIN  | PIN_GPIO_OUTPUT_DIS  | PIN_INPUT_EN |  PIN_PULLUP,
+  EPD_BUSY_PIN  | PIN_GPIO_OUTPUT_DIS | PIN_INPUT_EN |  PIN_PULLUP,
   EPD_DC_PIN    | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
   EPD_RST_PIN   | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
   EPD_CS_PIN    | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
@@ -43,7 +44,8 @@ static PIN_Config GPIOTable[] = {
   PIN_TERMINATE
 };
 
-extern uint8_t mac_address[6];
+// debug only
+int lut_size; 
 
 // epd frame buffer
 uint8_t epd_temp[296*16];   // 296 x 128
@@ -221,7 +223,6 @@ static uint8_t EPD_2IN13_ReadData()
     return rc;
 }
 
-#if 0
 static void EPD_2IN13_ReadBytes(uint8_t* buf, uint8_t len)
 {
     // Change SDA Pin to input 
@@ -239,8 +240,6 @@ static void EPD_2IN13_ReadBytes(uint8_t* buf, uint8_t len)
     DEV_Digital_Write(EPD_CS_PIN, 1);
     //DEV_Digital_Write(EPD_DC_PIN, 0);
 }
-
-#endif
 
 static inline int EPD_2IN13_IsBusy()
 {
@@ -386,53 +385,6 @@ static void EPD_BWR(int width, int height, int left, int top)
 
     // load lut
     EPD_Lut(lut_full_bwr);
-
-#if 0
-    // Set Ram X address
-    EPD_2IN13_SendCommand(0x4E); 
-    EPD_2IN13_SendData(h0 & 0xff);
-
-    // Set Ram Y address
-    EPD_2IN13_SendCommand(0x4F); 
-    EPD_2IN13_SendData(w0 & 0xff);
-    EPD_2IN13_SendData(w0 >> 8);
-
-    if (image) {
-        EPD_LoadImage(image, size, 0x24);
-    } else {
-        EPD_2IN13_SendCommand(0x24);
-        for (int i = 0; i < size; i++) {
-            EPD_2IN13_SendData(0xff);
-        }
-    }
-
-    // Set Ram X address
-    EPD_2IN13_SendCommand(0x4E); 
-    EPD_2IN13_SendData(h0 & 0xff);
-
-    // Set Ram Y address
-    EPD_2IN13_SendCommand(0x4F); 
-    EPD_2IN13_SendData(w0 & 0xff);
-    EPD_2IN13_SendData(w0 >> 8);
-
-    if (red_image) {
-        EPD_LoadImage(red_image, size, 0x26);
-    } else {
-        EPD_2IN13_SendCommand(0x26);
-        for (int i = 0; i < size; i++) {
-            EPD_2IN13_SendData(0x00);
-        }
-    }
-#endif
-
-#if 0
-    // Display update control
-    EPD_2IN13_SendCommand(0x22);
-    EPD_2IN13_SendData(0xc7);   // full: 0xf7
-
-    // Master Activation
-    EPD_2IN13_SendCommand(0x20);
-#endif
 }
 
 void EPD_2IN13_WriteRam(uint8_t *image, int width, int height, int left, int top, uint8_t is_red)
@@ -501,36 +453,35 @@ void EPD_Update()
     obdCreateVirtualDisplay(&obd, 296, 128, epd_temp);
     obdFill(&obd, 0, 0);
 
-    // mac address
-    System_snprintf(buf, 32, "%02x:%02x:%02x:%02x:%02x:%02x",
-            mac_address[0],mac_address[1],mac_address[2],
-            mac_address[3],mac_address[4],mac_address[5]);
+    // BLE dev name
+    extern void getBleAdvName(char* buf);
+    getBleAdvName(buf);
+    
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 16, buf, 1);
 
     // battery voltage
-    System_snprintf(buf, 32, "%umv", INTFRAC2MV(AONBatMonBatteryVoltageGet()));
+    System_snprintf(buf, 32, "%umV", INTFRAC2MV(AONBatMonBatteryVoltageGet()));
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 216, 16, buf, 1);
-
-    // time
-    System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
-    obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, 70, 85, buf, 1);
-
-    // date
-    //const char wstr[]={"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
-    System_snprintf(buf, 32, "%u-%02u-%02u %d", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, l->tm_wday);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 122, buf, 1);
 
     // temperature
     System_snprintf(buf, 32, "%dC %dC", AONBatMonTemperatureGetDegC(), EPD_ReadTemp());
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 216, 122, buf, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 132, 16, buf, 1);
 
-    // endian
+    // date
+    const char *wstr[]={"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
+    System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 122, buf, 1);
+
+    // time
+    System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
+    obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_60, 40, 94, buf, 1);
+
+    // endian and invent
     for (int i=0; i<sizeof(epd_temp); i++) {
         uint8_t c = epd_temp[i];
         epd_temp[i] = ~ucMirror[c];
     }
 
-    //need_sleep = 1;
     EPD_BWR(296, 128, 0, 0);
     EPD_2IN13_WriteRam(epd_temp, 296, 128, 0, 0, 0);
     EPD_2IN13_WriteRam(NULL, 296, 128, 0, 0, 1);
@@ -540,13 +491,33 @@ void EPD_Update()
     return;
 }
 
+// guess lut size
+static int EPD_LUT_Detect()
+{
+#define LUT_LEN_MAX    250
+#define LUT_FILL       0xa5
+    int i;
+    EPD_2IN13_SendCommand(0x32);
+    for(i=0; i<LUT_LEN_MAX; i++) {
+        EPD_2IN13_SendData(LUT_FILL);
+    }
+    EPD_2IN13_SendCommand(0x33);
+    for(i=0; i<LUT_LEN_MAX; i++) {
+        uint8_t c = EPD_2IN13_ReadData();
+        if (c != LUT_FILL) {
+            break;
+        }
+    }
+    return i;
+}
+
 // should be only called once!
 void epd_hw_init()
 {
     GPIOHandle = PIN_open(&GPIOState, GPIOTable);      
 
     // test LUT size
-    //lut_size = EPD_LUT_detect();
+    //lut_size = EPD_LUT_Detect();
 
     EPD_2IN13_Init();
 }
