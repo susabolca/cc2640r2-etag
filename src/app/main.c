@@ -60,7 +60,7 @@
 #include "hal_assert.h"
 #include "bcomdef.h"
 #include "peripheral.h"
-#include "simple_peripheral.h"
+#include "epd_peripheral.h"
 
 /* Header files required to enable instruction fetch cache */
 #include <inc/hw_memmap.h>
@@ -214,8 +214,12 @@ int main()
   /* Kick off profile - Priority 3 */
   GAPRole_createTask();
 
+  // BLE5 task
   SimpleBLEPeripheral_createTask();
 
+  // EPD task
+  
+  
   /* enable interrupts and start SYS/BIOS */
   BIOS_start();
 
