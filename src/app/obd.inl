@@ -1874,7 +1874,7 @@ uint8_t iLines;
   if (pOBD->type == LCD_VIRTUAL || pOBD->type >= SHARP_144x168) // pure memory, handle it differently
   {
      if (pOBD->ucScreen)
-        memset(pOBD->ucScreen, ucData, pOBD->width * (pOBD->height/8));
+        memset(pOBD->ucScreen, ucData, pOBD->width * pOBD->height/8);
      return;
   }
   iLines = pOBD->height >> 3;

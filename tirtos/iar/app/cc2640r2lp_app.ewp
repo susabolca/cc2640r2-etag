@@ -2333,10 +2333,10 @@
     <group>
         <name>Application</name>
         <file>
-            <name>$PROJ_DIR$\..\..\..\src\app\epd2in13.c</name>
+            <name>$PROJ_DIR$\..\..\..\src\app\epd_driver.c</name>
         </file>
         <file>
-            <name>$PROJ_DIR$\..\..\..\src\app\epd2in13.h</name>
+            <name>$PROJ_DIR$\..\..\..\src\app\epd_driver.h</name>
         </file>
         <file>
             <name>$PROJ_DIR$\..\..\..\src\app\OneBitDisplay.c</name>
