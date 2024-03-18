@@ -378,7 +378,7 @@ static void SimpleBLEPeripheral_init(void)
     // Initialize GATT attributes
     GGS_AddService(GATT_ALL_SERVICES);           // GAP GATT Service
     GATTServApp_AddService(GATT_ALL_SERVICES);   // GATT Service
-    DevInfo_AddService();                        // Device Information Service
+    //DevInfo_AddService();                        // Device Information Service
 
     // EPD GATT service
     EPDService_AddService(0);                    // Simple GATT Profile

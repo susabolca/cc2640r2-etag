@@ -29,7 +29,7 @@ static EpdServiceCBs_t *pAppCBs = NULL;
 static CONST gattAttrType_t EpdServiceDecl = { ATT_UUID_SIZE, EpdServiceUUID };
 
 // Characteristic "Epoch" Properties (for declaration)
-static uint8_t EpochProps = GATT_PROP_READ | GATT_PROP_WRITE | GATT_PROP_WRITE_NO_RSP;
+static uint8_t EpochProps = GATT_PROP_READ | GATT_PROP_WRITE | GATT_PROP_NOTIFY;
 
 // Characteristic "Epoch" Value variable
 static uint8_t EpochVal[EPD_EPOCH_LEN] = {0};

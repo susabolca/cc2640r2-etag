@@ -22,7 +22,6 @@
           });
           await bleDevice.addEventListener('gattserverdisconnected', disconnect);
           await connect();
-          //catch(handleError);
       } 
     }
 
@@ -32,7 +31,7 @@
         gattServer = await bleDevice.gatt.connect();
         info('> Found GATT server');
         epdService = await gattServer.getPrimaryService('f0001140-0451-4000-b000-000000000000');
-        info('> Found service');
+        info('> Found EPD service');
         epochCharacter = await epdService.getCharacteristic('f0001141-0451-4000-b000-000000000000');
         document.getElementById("btnConnect").innerHTML = 'Disconnect';
       }
@@ -40,7 +39,10 @@
 
     function disconnect() {
         bleDevice = null;
+        epdService = null;
+        epochCharacter = null;
         info('Disconnected.');
+        
         document.getElementById("btnConnect").innerHTML = 'Connect';
     }
 
@@ -52,19 +54,6 @@
         await epochCharacter.writeValueWithResponse(arr);
         info("Write unix epoch: " + epoch);
     }
-
-    function handleNotify(data) {
-      console.log("Got bytes: " + data.buffer);
-    }
-
-    function handleError(error) {
-      console.log(error);
-      if (bleDevice == null) {
-        return;
-      } else {
-        console.log("Was not able to connect, aborting");
-      }
-    }    
 
     function info(logTXT) {
       var today = new Date();
