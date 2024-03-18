@@ -258,29 +258,29 @@ void EPD_SSD_Update(void)
     obdCreateVirtualDisplay(&obd, EPD_WIDTH, EPD_HEIGHT, epd_buffer);
     obdFill(&obd, 0, 0);
 
-#if 0
     // BLE dev name
     extern void getBleAdvName(char* buf);
     getBleAdvName(buf);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 128, buf, 1);
-#endif
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 2, 128, buf, 1);
 
-#if 1 
     // battery voltage
     uint32_t v = AONBatMonBatteryVoltageGet();
-    uint8_t t = EPD_2IN9_ReadTemp();
-    System_snprintf(buf, 32, "%3uc %u.%uv", t, INTFRAC_V(v), INTFRAC_mV(v)/100);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 210, 24, buf, 1);
-#endif
+    System_snprintf(buf, 32, "%u.%uv", INTFRAC_V(v), INTFRAC_mV(v)/100);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 256, 128, buf, 1);
 
     // date
     const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
     System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 0, 24, buf, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 2, 22, buf, 1);
+
+    // temp
+    uint8_t t = EPD_2IN9_ReadTemp();
+    System_snprintf(buf, 32, "%3uc", t);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 240, 22, buf, 1);
 
     // time
     System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
-    obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_80, 8, 24+80+10, buf, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_80, 8, 24+80+5, buf, 1);
 
     // endian and invent
     for (int i=0; i<sizeof(epd_buffer); i++) {

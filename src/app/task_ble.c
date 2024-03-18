@@ -343,6 +343,7 @@ static void SimpleBLEPeripheral_init(void)
         GAP_SetParamValue(TGAP_GEN_DISC_ADV_INT_MAX, advInt);
     }
 
+#if 0
     // Setup the GAP Bond Manager. For more information see the section in the
     // User's Guide:
     // http://software-dl.ti.com/lprf/ble5stack-docs-latest/html/ble-stack/gapbondmngr.html#
@@ -372,6 +373,7 @@ static void SimpleBLEPeripheral_init(void)
         GAPBondMgr_SetParameter(GAPBOND_IO_CAPABILITIES, sizeof(uint8_t), &ioCap);
         GAPBondMgr_SetParameter(GAPBOND_BONDING_ENABLED, sizeof(uint8_t), &bonding);
     }
+#endif
 
     // Initialize GATT attributes
     GGS_AddService(GATT_ALL_SERVICES);           // GAP GATT Service
@@ -435,10 +437,10 @@ static void SimpleBLEPeripheral_init(void)
         // This API is documented in hci.h
         // See BLE5-Stack User's Guide for information on using this command:
         // http://software-dl.ti.com/lprf/ble5stack-docs-latest/html/ble-stack/data-length-extensions.html
-        // HCI_LE_WriteSuggestedDefaultDataLenCmd(APP_SUGGESTED_PDU_SIZE, APP_SUGGESTED_TX_TIME);
+        HCI_LE_WriteSuggestedDefaultDataLenCmd(APP_SUGGESTED_PDU_SIZE, APP_SUGGESTED_TX_TIME);
     }
 
-#if defined (BLE_V42_FEATURES) && (BLE_V42_FEATURES & PRIVACY_1_2_CFG)
+#if 0 // defined (BLE_V42_FEATURES) && (BLE_V42_FEATURES & PRIVACY_1_2_CFG)
     // Initialize GATT Client
     GATT_InitClient();
 

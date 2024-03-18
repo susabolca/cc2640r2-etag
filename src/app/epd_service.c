@@ -56,7 +56,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
     // Epoch Characteristic Value
     {
         { ATT_UUID_SIZE, EpdUUID },
-        GATT_PERMIT_READ | GATT_PERMIT_WRITE | GATT_PERMIT_WRITE,
+        GATT_PERMIT_READ | GATT_PERMIT_WRITE,
         0,
         EpochVal
     },

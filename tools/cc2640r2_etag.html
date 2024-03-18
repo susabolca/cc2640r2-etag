@@ -1,0 +1,85 @@
+<html lang="zh-CN">
+
+<script>
+    let bleDevice;
+    let gattServer;
+    let Theservice;
+    let epdService;
+    let epochCharacter;
+
+    async function doConnect() {
+      if (gattServer != null && gattServer.connected) {
+        if (bleDevice != null && bleDevice.gatt.connected)
+          bleDevice.gatt.disconnect();
+      }
+      else {
+        bleDevice = await navigator.bluetooth.requestDevice({ 
+            filters: [{ namePrefix: ['C26_'] }], 
+            optionalServices: [
+              'f0001140-0451-4000-b000-000000000000', 
+            ], 
+            //acceptAllDevices: true 
+          });
+          await bleDevice.addEventListener('gattserverdisconnected', disconnect);
+          await connect();
+          //catch(handleError);
+      } 
+    }
+
+    async function connect() {
+      if (epochCharacter == null) {
+        info("Connect to " + bleDevice.name)
+        gattServer = await bleDevice.gatt.connect();
+        info('> Found GATT server');
+        epdService = await gattServer.getPrimaryService('f0001140-0451-4000-b000-000000000000');
+        info('> Found service');
+        epochCharacter = await epdService.getCharacteristic('f0001141-0451-4000-b000-000000000000');
+        document.getElementById("btnConnect").innerHTML = 'Disconnect';
+      }
+    }
+
+    function disconnect() {
+        bleDevice = null;
+        info('Disconnected.');
+        document.getElementById("btnConnect").innerHTML = 'Connect';
+    }
+
+    async function doSetTime() {
+        var epoch = Date.now() / 1000 | 0;
+        var buf = new ArrayBuffer(4);
+        var arr = new Uint32Array(buf);
+        arr[0] = epoch;
+        await epochCharacter.writeValueWithResponse(arr);
+        info("Write unix epoch: " + epoch);
+    }
+
+    function handleNotify(data) {
+      console.log("Got bytes: " + data.buffer);
+    }
+
+    function handleError(error) {
+      console.log(error);
+      if (bleDevice == null) {
+        return;
+      } else {
+        console.log("Was not able to connect, aborting");
+      }
+    }    
+
+    function info(logTXT) {
+      var today = new Date();
+      var time = ("0" + today.getHours()).slice(-2) + ":" + ("0" + today.getMinutes()).slice(-2) + ":" + ("0" + today.getSeconds()).slice(-2) + " : ";
+      document.getElementById("log").innerHTML += time + logTXT + '<br>';
+      console.log(time + logTXT);
+      while ((document.getElementById("log").innerHTML.match(/<br>/g) || []).length > 10) {
+        var logs_br_position = document.getElementById("log").innerHTML.search("<br>");
+        document.getElementById("log").innerHTML = document.getElementById("log").innerHTML.substring(logs_br_position + 4);
+      }
+    }
+</script>
+
+<button id="btnConnect" type="button" onclick="doConnect()">Connect</button>
+<button id="btnSetTime" type="button" onclick="doSetTime()">SetTime</button>
+
+<div id="log"></div>
+</html>
