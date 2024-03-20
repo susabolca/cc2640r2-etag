@@ -16,7 +16,7 @@
         bleDevice = await navigator.bluetooth.requestDevice({ 
             filters: [{ namePrefix: ['C26_'] }], 
             optionalServices: [
-              'f0001140-0451-4000-b000-000000000000', 
+              0x1140, 
             ], 
             //acceptAllDevices: true 
           });
@@ -30,9 +30,9 @@
         info("Connect to " + bleDevice.name)
         gattServer = await bleDevice.gatt.connect();
         info('> Found GATT server');
-        epdService = await gattServer.getPrimaryService('f0001140-0451-4000-b000-000000000000');
+        epdService = await gattServer.getPrimaryService(0x1140);
         info('> Found EPD service');
-        epochCharacter = await epdService.getCharacteristic('f0001141-0451-4000-b000-000000000000');
+        epochCharacter = await epdService.getCharacteristic(0x1141);
         document.getElementById("btnConnect").innerHTML = 'Disconnect';
       }
     }

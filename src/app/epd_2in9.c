@@ -241,7 +241,17 @@ void EPD_2IN9_Sleep(void)
 
 void EPD_SSD_Update(void)
 {
+    static bool need_sleep = 0;
     static time_t last = 0;
+
+    if (need_sleep) {
+        if (EPD_SSD_IsBusy()) {
+            return;
+        }
+        EPD_2IN9_Sleep();
+        need_sleep = 0;
+    }
+
     time_t now = time(NULL);
     if (last && ((now % 60) != 0)) {
         return;
@@ -315,8 +325,9 @@ void EPD_SSD_Update(void)
 
     // show
     EPD_2IN9_Display(full_upd ? 0xf7 : 0xc7);    // c7: by REG  f7: by OTP   b1: no display 
-    EPD_SSD_WaitBusy();
-    EPD_2IN9_Sleep();
+    need_sleep = 1;
+    //EPD_SSD_WaitBusy();
+    //EPD_2IN9_Sleep();
     return;
 }
 

@@ -12,21 +12,21 @@
 #include "epd_service.h"
 
 // EPD_Service Service UUID
-CONST uint8_t EpdServiceUUID[ATT_UUID_SIZE] =
+CONST uint8_t EpdServiceUUID[ATT_BT_UUID_SIZE] =
 {
-    EPD_SERVICE_SERV_UUID_BASE128(EPD_SERVICE_SERV_UUID)
+    LO_UINT16(EPD_SERVICE_SERV_UUID), HI_UINT16(EPD_SERVICE_SERV_UUID),
 };
 
 // Unix Epoch UUID
-CONST uint8_t EpdUUID[ATT_UUID_SIZE] =
+CONST uint8_t EpdEpochUUID[ATT_BT_UUID_SIZE] =
 {
-    EPD_EPOCH_UUID_BASE128(EPD_EPOCH_UUID)
+    LO_UINT16(EPD_EPOCH_UUID), HI_UINT16(EPD_EPOCH_UUID),
 };
 
 static EpdServiceCBs_t *pAppCBs = NULL;
 
 // Service declaration
-static CONST gattAttrType_t EpdServiceDecl = { ATT_UUID_SIZE, EpdServiceUUID };
+static CONST gattAttrType_t EpdServiceDecl = { ATT_BT_UUID_SIZE, EpdServiceUUID };
 
 // Characteristic "Epoch" Properties (for declaration)
 static uint8_t EpochProps = GATT_PROP_READ | GATT_PROP_WRITE | GATT_PROP_NOTIFY;
@@ -55,7 +55,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
     },
     // Epoch Characteristic Value
     {
-        { ATT_UUID_SIZE, EpdUUID },
+        { ATT_BT_UUID_SIZE, EpdEpochUUID },
         GATT_PERMIT_READ | GATT_PERMIT_WRITE,
         0,
         EpochVal
@@ -156,13 +156,15 @@ bStatus_t EPDService_GetParameter(uint8_t param, uint16_t *len, void *value)
 
 static uint8_t EPDService_findCharParamId(gattAttribute_t *pAttr)
 {
+#if 0
     // Is this a Client Characteristic Configuration Descriptor?
     if(ATT_BT_UUID_SIZE == pAttr->type.len && GATT_CLIENT_CHAR_CFG_UUID ==
        *(uint16_t *)pAttr->type.uuid) {
         return (EPDService_findCharParamId(pAttr - 1)); // Assume the value attribute precedes CCCD and recurse
-    
+    } elif
+#endif 
     // Is this attribute in "Epoch"?
-    } else if (ATT_UUID_SIZE == pAttr->type.len && !memcmp(pAttr->type.uuid, EpdUUID, pAttr->type.len)) {
+    if (ATT_BT_UUID_SIZE == pAttr->type.len && !memcmp(pAttr->type.uuid, EpdEpochUUID, pAttr->type.len)) {
         return EPD_EPOCH_ID;
    
     } else {

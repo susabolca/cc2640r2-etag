@@ -4,16 +4,11 @@
 #include <bcomdef.h>
 
 // Service UUID
-#define EPD_SERVICE_SERV_UUID 0x1140
-#define EPD_SERVICE_SERV_UUID_BASE128(uuid) 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
-    0x00, 0xB0, 0x00, 0x40, 0x51, 0x04, LO_UINT16(uuid), HI_UINT16(uuid), 0x00, \
-    0xF0
+#define EPD_SERVICE_SERV_UUID       0x1140
 
 // Unix Epoch (from 1970-1-1 00:00)
 #define EPD_EPOCH_ID                 0
 #define EPD_EPOCH_UUID               0x1141
-#define EPD_EPOCH_UUID_BASE128(uuid) 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
-    0xB0, 0x00, 0x40, 0x51, 0x04, LO_UINT16(uuid), HI_UINT16(uuid), 0x00, 0xF0
 #define EPD_EPOCH_LEN                4
 #define EPD_EPOCH_LEN_MIN            4
 

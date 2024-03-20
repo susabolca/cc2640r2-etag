@@ -37,18 +37,18 @@
 
 // Minimum connection interval (units of 1.25ms, 80=100ms) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     16 // 80
 
 // Maximum connection interval (units of 1.25ms, 800=1000ms) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
+#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     40 // 800
 
 // Slave latency to use for automatic parameter update request
 #define DEFAULT_DESIRED_SLAVE_LATENCY         0
 
 // Supervision timeout value (units of 10ms, 1000=10s) for automatic parameter
 // update request
-#define DEFAULT_DESIRED_CONN_TIMEOUT          1000
+#define DEFAULT_DESIRED_CONN_TIMEOUT          100 //1000
 
 // After the connection is formed, the peripheral waits until the central
 // device asks for its preferred connection parameters
@@ -343,7 +343,7 @@ static void SimpleBLEPeripheral_init(void)
         GAP_SetParamValue(TGAP_GEN_DISC_ADV_INT_MAX, advInt);
     }
 
-#if 0
+#if 1
     // Setup the GAP Bond Manager. For more information see the section in the
     // User's Guide:
     // http://software-dl.ti.com/lprf/ble5stack-docs-latest/html/ble-stack/gapbondmngr.html#
@@ -440,7 +440,7 @@ static void SimpleBLEPeripheral_init(void)
         HCI_LE_WriteSuggestedDefaultDataLenCmd(APP_SUGGESTED_PDU_SIZE, APP_SUGGESTED_TX_TIME);
     }
 
-#if 0 // defined (BLE_V42_FEATURES) && (BLE_V42_FEATURES & PRIVACY_1_2_CFG)
+#if defined (BLE_V42_FEATURES) && (BLE_V42_FEATURES & PRIVACY_1_2_CFG)
     // Initialize GATT Client
     GATT_InitClient();
 
@@ -453,7 +453,7 @@ static void SimpleBLEPeripheral_init(void)
     // contain its Identity Address.
     // Devices wanting to use Network Privacy Mode with other BT5 devices, this
     // line should be commented out.
-    GGS_SetParamValue(GGS_DISABLE_RPAO_CHARACTERISTIC);
+    //GGS_SetParamValue(GGS_DISABLE_RPAO_CHARACTERISTIC);
 #endif // BLE_V42_FEATURES & PRIVACY_1_2_CFG
 
 #if !defined (USE_LL_CONN_PARAM_UPDATE)
