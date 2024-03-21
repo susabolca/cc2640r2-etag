@@ -118,9 +118,9 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
     EPD_SSD_SendData(*(lut+232));
 }
 
-static uint8_t EPD_2IN9_ReadTemp()
+static int8_t EPD_2IN9_ReadTemp()
 {
-    uint8_t rc;
+    int8_t rc;
     
     EPD_SSD_SendCommand(0x12); // soft reset
     EPD_SSD_WaitBusy();
@@ -257,8 +257,7 @@ void EPD_SSD_Update(void)
         return;
     }
     last = now;
-    // TBD: timezone +8
-    now += (3600 * 8);
+    now += utc_offset_mins * 60;
     struct tm *l = localtime(&now);
 
     // wakeup EPD
@@ -274,9 +273,9 @@ void EPD_SSD_Update(void)
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 2, 128, buf, 1);
 
     // battery voltage
-    uint32_t v = AONBatMonBatteryVoltageGet();
-    System_snprintf(buf, 32, "%u.%uv", INTFRAC_V(v), INTFRAC_mV(v)/100);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 256, 128, buf, 1);
+    uint8_t v = EPD_BATT_Percent(); 
+    System_snprintf(buf, 32, "%3u%%", v);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 250, 128, buf, 1);
 
     // date
     const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
@@ -284,8 +283,8 @@ void EPD_SSD_Update(void)
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 2, 22, buf, 1);
 
     // temp
-    uint8_t t = EPD_2IN9_ReadTemp();
-    System_snprintf(buf, 32, "%3uc", t);
+    epd_temperature = EPD_2IN9_ReadTemp();
+    System_snprintf(buf, 32, "%3uc", epd_temperature);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 240, 22, buf, 1);
 
     // time
@@ -303,25 +302,7 @@ void EPD_SSD_Update(void)
     EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
     if (!full_upd) EPD_2IN9_Lut(lut_full_bwr);
     EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
-
-#if 0
-    // red
-    obdFill(&obd, 0, 0);
-
-    // date
-    const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-    System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 122, buf, 1);
-
-    // endian and invent
-    for (int i=0; i<sizeof(epd_buffer); i++) {
-        uint8_t c = epd_buffer[i];
-        epd_buffer[i] = ucMirror[c];
-    }
-    EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
-#else
     EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
-#endif 
 
     // show
     EPD_2IN9_Display(full_upd ? 0xf7 : 0xc7);    // c7: by REG  f7: by OTP   b1: no display 

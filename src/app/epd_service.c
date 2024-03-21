@@ -3,39 +3,59 @@
 
 //#include <xdc/runtime/Log.h> // Comment this in to use xdc.runtime.Log
 //#include <uartlog/UartLog.h>  // Comment out if using xdc Log
-
 #include <icall.h>
+#include "util.h"
 
 /* This Header file contains all BLE API and icall structure definition */
 #include "icall_ble_api.h"
 
+#include <ti/sysbios/hal/Seconds.h> // Seconds_set
+
+#include "epd_driver.h" // epd_battery, epd_temperature
 #include "epd_service.h"
 
 // EPD_Service Service UUID
-CONST uint8_t EpdServiceUUID[ATT_BT_UUID_SIZE] =
-{
+CONST uint8 EpdServiceUUID[ATT_BT_UUID_SIZE] = {
     LO_UINT16(EPD_SERVICE_SERV_UUID), HI_UINT16(EPD_SERVICE_SERV_UUID),
 };
 
 // Unix Epoch UUID
-CONST uint8_t EpdEpochUUID[ATT_BT_UUID_SIZE] =
-{
+CONST uint8 EpdEpochUUID[ATT_BT_UUID_SIZE] = {
     LO_UINT16(EPD_EPOCH_UUID), HI_UINT16(EPD_EPOCH_UUID),
 };
 
+CONST uint8 EpdUtcOffsetUUID[ATT_BT_UUID_SIZE] = {
+    LO_UINT16(EPD_UTC_OFFSET_UUID), HI_UINT16(EPD_UTC_OFFSET_UUID),
+};
+
+CONST uint8 EpdBattUUID[ATT_BT_UUID_SIZE] = {
+    LO_UINT16(EPD_BATT_UUID), HI_UINT16(EPD_BATT_UUID),
+};
+
+CONST uint8 EpdTempUUID[ATT_BT_UUID_SIZE] = {
+    LO_UINT16(EPD_TEMP_UUID), HI_UINT16(EPD_TEMP_UUID),
+};
+
 static EpdServiceCBs_t *pAppCBs = NULL;
+static gattCharCfg_t *EpdDataConfig;
 
 // Service declaration
 static CONST gattAttrType_t EpdServiceDecl = { ATT_BT_UUID_SIZE, EpdServiceUUID };
+static uint8 EpochProps = GATT_PROP_READ | GATT_PROP_WRITE;
+static uint8 EpochVal[4] = {0};
+static uint8 EpochDesc[] = "Unix Epoch";
 
-// Characteristic "Epoch" Properties (for declaration)
-static uint8_t EpochProps = GATT_PROP_READ | GATT_PROP_WRITE | GATT_PROP_NOTIFY;
+static uint8 UtcOffProps = GATT_PROP_READ | GATT_PROP_WRITE;
+static uint8 UtcOffDesc[] = "UTC Offset Mins";
+static int8  UtcOffVal[4] = {0};
 
-// Characteristic "Epoch" Value variable
-static uint8_t EpochVal[EPD_EPOCH_LEN] = {0};
+static uint8 BattProps = GATT_PROP_READ;
+static uint8 BattDesc[] = "Battery mv";
+static uint8 BattVal[2] = {0};
 
-// Length of data in characteristic "Epoch" Value variable, initialized to minimal size.
-static uint16_t EpochValLen = EPD_EPOCH_LEN_MIN;
+static uint8 TempProps = GATT_PROP_READ;
+static uint8 TempDesc[] = "Temperature";
+static int8  TempVal[1] = {0};
 
 static gattAttribute_t EpdServiceAttrTbl[] =
 {
@@ -46,6 +66,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
         0,
         (uint8_t *)&EpdServiceDecl
     },
+
     // Epoch Characteristic Declaration
     {
         { ATT_BT_UUID_SIZE, characterUUID },
@@ -53,13 +74,60 @@ static gattAttribute_t EpdServiceAttrTbl[] =
         0,
         &EpochProps
     },
-    // Epoch Characteristic Value
+        // Epoch Characteristic Value
+        {
+            { ATT_BT_UUID_SIZE, EpdEpochUUID },
+            GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+            0,
+            EpochVal
+        },
+
+    // Characteristic Declaration
     {
-        { ATT_BT_UUID_SIZE, EpdEpochUUID },
-        GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+        { ATT_BT_UUID_SIZE, characterUUID },
+        GATT_PERMIT_READ,
         0,
-        EpochVal
+        &UtcOffProps
     },
+        // Characteristic Value
+        {
+            { ATT_BT_UUID_SIZE, EpdUtcOffsetUUID },
+            GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+            0,
+            UtcOffVal 
+        },
+
+#if 1
+    // Characteristic Declaration
+    {
+        { ATT_BT_UUID_SIZE, characterUUID },
+        GATT_PERMIT_READ,
+        0,
+        &BattProps
+    },
+        // Characteristic Value
+        {
+            { ATT_BT_UUID_SIZE, EpdBattUUID },
+            GATT_PERMIT_READ,
+            0,
+            BattVal 
+        },
+
+    // Characteristic Declaration
+    {
+        { ATT_BT_UUID_SIZE, characterUUID },
+        GATT_PERMIT_READ,
+        0,
+        &TempProps
+    },
+        // Characteristic Value
+        {
+            { ATT_BT_UUID_SIZE, EpdTempUUID },
+            GATT_PERMIT_READ,
+            0,
+            TempVal 
+        },
+#endif        
 };
 
 
@@ -86,9 +154,19 @@ CONST gattServiceCBs_t EpdServiceCBs =
     NULL                        // Authorization callback function pointer
 };
 
-extern bStatus_t EPDService_AddService(uint8_t rspTaskId)
+bStatus_t EPDService_AddService(uint8_t rspTaskId)
 {
     uint8_t status;
+
+    // Allocate Client Characteristic Configuration table
+    EpdDataConfig = (gattCharCfg_t *)ICall_malloc(sizeof(gattCharCfg_t) * linkDBNumConns);
+    if (EpdDataConfig == NULL) {
+        return (bleMemAllocError);
+    }
+
+    // Register with Link DB to receive link status change callback
+    GATTServApp_InitCharCfg(INVALID_CONNHANDLE, EpdDataConfig);
+
     // Register GATT attribute list and CBs with GATT Server App
     status = GATTServApp_RegisterService(EpdServiceAttrTbl,
                                          GATT_NUM_ATTRS(EpdServiceAttrTbl),
@@ -110,23 +188,14 @@ bStatus_t EPDService_RegisterAppCBs(EpdServiceCBs_t *appCallbacks)
 bStatus_t EPDService_SetParameter(uint8_t param, uint16_t len, void *value)
 {
     bStatus_t ret = SUCCESS;
-    uint8_t  *pAttrVal;
-    uint16_t *pValLen;
-    uint16_t valMinLen;
-    uint16_t valMaxLen;
 
     switch (param) {
-        case EPD_EPOCH_ID:
-            pAttrVal = EpochVal;
-            pValLen = &EpochValLen;
-            valMinLen = EPD_EPOCH_LEN_MIN;
-            valMaxLen = EPD_EPOCH_LEN;
-            break;
 
         default:
             return(INVALIDPARAMETER);
     }
 
+#if 0
     // Check bounds, update value and send notification or indication if possible.
     if(len <= valMaxLen && len >= valMinLen) {
         memcpy(pAttrVal, value, len);
@@ -134,7 +203,7 @@ bStatus_t EPDService_SetParameter(uint8_t param, uint16_t len, void *value)
     } else {
         ret = bleInvalidRange;
     }
-
+#endif
     return ret;
 }
 
@@ -142,11 +211,12 @@ bStatus_t EPDService_GetParameter(uint8_t param, uint16_t *len, void *value)
 {
     bStatus_t ret = SUCCESS;
     switch (param) {
+#if 0
         case EPD_EPOCH_ID:
-            *len = MIN(*len, EpochValLen);
+            *len = 4;
             memcpy(value, EpochVal, *len);
             break;
-
+#endif    
         default:
             ret = INVALIDPARAMETER;
             break;
@@ -154,6 +224,7 @@ bStatus_t EPDService_GetParameter(uint8_t param, uint16_t *len, void *value)
     return ret;
 }
 
+#if 0
 static uint8_t EPDService_findCharParamId(gattAttribute_t *pAttr)
 {
 #if 0
@@ -163,13 +234,38 @@ static uint8_t EPDService_findCharParamId(gattAttribute_t *pAttr)
         return (EPDService_findCharParamId(pAttr - 1)); // Assume the value attribute precedes CCCD and recurse
     } elif
 #endif 
-    // Is this attribute in "Epoch"?
-    if (ATT_BT_UUID_SIZE == pAttr->type.len && !memcmp(pAttr->type.uuid, EpdEpochUUID, pAttr->type.len)) {
-        return EPD_EPOCH_ID;
-   
-    } else {
-        return 0xFF; // Not found. Return invalid.
+    if (ATT_BT_UUID_SIZE == pAttr->type.len) {
+        uint16_t uuid = BUILD_UINT16(pAttr->type.uuid[0], pAttr->type.uuid[1]);
+        switch (uuid) {
+            case EPD_EPOCH_UUID:
+                return EPD_EPOCH_ID;
+            case EPD_UTC_OFFSET_UUID:
+                return EPD_UTC_OFFSET_ID;
+            case EPD_BATT_UUID:
+                return EPD_BATT_ID;
+            case EPD_TEMP_UUID:
+                return EPD_TEMP_ID;
+        }
     }
+    return 0xFF; // Not found. Return invalid.
+}
+#endif 
+
+static bStatus_t utilExtractUuid16(gattAttribute_t *pAttr, uint16_t *pUuid)
+{
+  bStatus_t status = SUCCESS;
+
+  if (pAttr->type.len == ATT_BT_UUID_SIZE) {
+    // 16-bit UUID direct
+    *pUuid = BUILD_UINT16(pAttr->type.uuid[0], pAttr->type.uuid[1]);
+  } else if (pAttr->type.len == ATT_UUID_SIZE) {
+    // 16-bit UUID extracted bytes 12 and 13
+    *pUuid = BUILD_UINT16(pAttr->type.uuid[12], pAttr->type.uuid[13]);
+  } else {
+    *pUuid = 0xFFFF;
+    status = FAILURE;
+  }
+  return status;
 }
 
 static bStatus_t EPDService_ReadAttrCB(uint16_t connHandle,
@@ -180,26 +276,47 @@ static bStatus_t EPDService_ReadAttrCB(uint16_t connHandle,
                                        uint8_t method)
 {
     bStatus_t status = SUCCESS;
-    uint16_t valueLen;
-    uint8_t paramID = 0xFF;
 
-    // Find settings for the characteristic to be read.
-    paramID = EPDService_findCharParamId(pAttr);
-    switch(paramID) {
-        case EPD_EPOCH_ID:
-            valueLen = EpochValLen;
+    if (offset > 0) {
+        return ATT_ERR_ATTR_NOT_LONG;
+    }
+
+    uint16_t uuid;
+    if (utilExtractUuid16(pAttr, &uuid) == FAILURE) {
+        return ATT_ERR_INVALID_HANDLE;
+    }
+
+    switch(uuid) {
+        case EPD_EPOCH_UUID: {
+            uint32_t t = Seconds_get();
+            *pLen = sizeof(t);
+            memcpy(pValue, &t, *pLen);
             break;
+        }
+
+        case EPD_UTC_OFFSET_UUID: {
+            int32_t t = utc_offset_mins;
+            *pLen = sizeof(t);
+            memcpy(pValue, &t, *pLen);
+            break;
+        }
+
+        case EPD_BATT_UUID: {
+            uint16_t v = INTFRAC2MV(epd_battery);
+            *pLen = sizeof(v);
+            memcpy(pValue, &v, *pLen);
+            break;
+        }
+        
+        case EPD_TEMP_UUID: {
+            uint8_t v = epd_temperature;
+            *pLen = sizeof(v);
+            memcpy(pValue, &v, *pLen);
+            break;
+        }
 
         default:
             return ATT_ERR_ATTR_NOT_FOUND;
-    }
-
-    // Check bounds and return the value
-    if(offset > valueLen) {
-        status = ATT_ERR_INVALID_OFFSET;
-    } else {
-        *pLen = MIN(maxLen, valueLen - offset); // Transmit as much as possible
-        memcpy(pValue, pAttr->pValue + offset, *pLen);
     }
 
     return status;
@@ -212,60 +329,46 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
                                         uint8_t method)
 {
     bStatus_t status = SUCCESS;
-    uint8_t paramID = 0xFF;
     uint8_t changeParamID = 0xFF;
-    uint16_t writeLenMin;
-    uint16_t writeLenMax;
-    uint16_t *pValueLenVar;
+    uint16_t uuid; 
 
     // Find settings for the characteristic to be written.
-    paramID = EPDService_findCharParamId(pAttr);
-    switch(paramID) {
-        case EPD_EPOCH_ID:
-            writeLenMin = EPD_EPOCH_LEN_MIN;
-            writeLenMax = EPD_EPOCH_LEN;
-            pValueLenVar = &EpochValLen;
+    if (utilExtractUuid16(pAttr, &uuid) == FAILURE) {
+        return ATT_ERR_INVALID_HANDLE;
+    }
 
-            /* Other considerations for Epoch can be inserted here */
+    switch (uuid) {
+        case EPD_EPOCH_UUID: {
+            if (len == 4) {
+                uint32_t t = *(uint32_t*)pValue;
+                Seconds_set(t);
+            }
             break;
+        }
+
+        case EPD_UTC_OFFSET_UUID: {
+            if (len == 4) {
+                int32_t t = *(int32_t*)pValue;
+                if ((t >= (-12*60)) && (t <= (12*60))) { // +/- 12 hrs
+                    utc_offset_mins = t;
+                }
+            }
+            break;
+        }
+
+        case GATT_CLIENT_CHAR_CFG_UUID:
+            status = GATTServApp_ProcessCCCWriteReq(connHandle, pAttr, pValue, len, offset, GATT_CLIENT_CFG_NOTIFY);
+            break; 
 
         default:
             return ATT_ERR_ATTR_NOT_FOUND;
     }
     
-    // Check whether the length is within bounds.
-    if(offset >= writeLenMax) {
-        status = ATT_ERR_INVALID_OFFSET;
-    } else if(offset + len > writeLenMax) {
-        status = ATT_ERR_INVALID_VALUE_SIZE;
-    } else if(offset + len < writeLenMin &&
-            (method == ATT_EXECUTE_WRITE_REQ || method == ATT_WRITE_REQ)) {
-        // Refuse writes that are lower than minimum.
-        // Note: Cannot determine if a Reliable Write (to several chars) is finished, so those will
-        //       only be refused if this attribute is the last in the queue (method is execute).
-        //       Otherwise, reliable writes are accepted and parsed piecemeal.
-        status = ATT_ERR_INVALID_VALUE_SIZE;
-    } else {
-        // Copy pValue into the variable we point to from the attribute table.
-        memcpy(pAttr->pValue + offset, pValue, len);
-
-        // Only notify application and update length if enough data is written.
-        //
-        // Note: If reliable writes are used (meaning several attributes are written to using ATT PrepareWrite),
-        //       the application will get a callback for every write with an offset + len larger than _LEN_MIN.
-        // Note: For Long Writes (ATT Prepare + Execute towards only one attribute) only one callback will be issued,
-        //       because the write fragments are concatenated before being sent here.
-        if(offset + len >= writeLenMin) {
-            changeParamID = paramID;
-            *pValueLenVar = offset + len; // Update data length.
-        }
-    }
-
     // Let the application know something changed (if it did) by using the
     // callback it registered earlier (if it did).
     if(changeParamID != 0xFF) {
         if(pAppCBs && pAppCBs->pfnChangeCb) {
-            pAppCBs->pfnChangeCb(connHandle, paramID, len + offset, pValue); // Call app function from stack task context.
+            pAppCBs->pfnChangeCb(connHandle, changeParamID, len + offset, pValue); // Call app function from stack task context.
         }
     }
     return status;

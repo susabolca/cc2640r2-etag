@@ -28,6 +28,15 @@ uint8_t epd_buffer[EPD_BUF_MAX];
 // debug only
 int lut_size; 
 
+// battery voltage, in frac <3.8>
+uint16_t epd_battery;
+
+// in degree celcius, read from EPD.
+int8_t epd_temperature;
+
+// local time to UTC time offset, in minuts.
+int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
+
 /*
  * Device APIs
  */
@@ -188,6 +197,33 @@ int EPD_SSD_LutDetect()
     return i;
 }
 
+// 0-100, for CR2450, 3000mv lithum battery.
+uint8_t EPD_BATT_Percent(void)
+{
+    // Convert to from V to mV to avoid fractions.
+    // Fractional part is in the lower 8 bits thus converting is done as follows:
+    // (1/256)/(1/1000) = 1000/256 = 125/32
+    // This is done most effectively by multiplying by 125 and then shifting
+    // 5 bits to the right.
+    uint32_t v = INTFRAC2MV(epd_battery);
+
+    /* for cr2450, lithium battery,
+     * 3000 (100%) - 2800 (60%)
+     * 2800 ( 60%) - 2500 (20%)
+     * 2500 ( 20%) - 2000 (0%)
+     */
+    if (v >= 3000) {
+        return 100;
+    } else if (v > 2800) {
+        return (v-2800)*40/(3000-2800) + 60;
+    } else if (v > 2500) {
+        return (v-2500)*40/(2800-2500) + 20;
+    } else if (v > 2000) {
+        return (v-2000)*20/(2500-2000);
+    }
+    return 0;
+}
+
 // Select a EPD
 #if defined(EPD_2IN13_SSD1680)
 
@@ -216,5 +252,9 @@ void EPD_Init()
 
 void EPD_Update()
 {
+    // update battery level
+    epd_battery = AONBatMonBatteryVoltageGet(); 
+
+    // update Display
     EPD_SSD_Update();
 }

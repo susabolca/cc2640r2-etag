@@ -14,7 +14,7 @@
 #include <ti/devices/DeviceFamily.h>
 #include DeviceFamily_constructPath(driverlib/sys_ctrl.h)
 
-#include <ti/sysbios/hal/Seconds.h> // Seconds_set
+//#include <ti/sysbios/hal/Seconds.h> // Seconds_set
 #include <xdc/runtime/System.h>     // snprintf
 
 // profiles
@@ -37,18 +37,18 @@
 
 // Minimum connection interval (units of 1.25ms, 80=100ms) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     16 // 80
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
 
 // Maximum connection interval (units of 1.25ms, 800=1000ms) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     40 // 800
+#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
 
 // Slave latency to use for automatic parameter update request
 #define DEFAULT_DESIRED_SLAVE_LATENCY         0
 
 // Supervision timeout value (units of 10ms, 1000=10s) for automatic parameter
 // update request
-#define DEFAULT_DESIRED_CONN_TIMEOUT          100 //1000
+#define DEFAULT_DESIRED_CONN_TIMEOUT          1000
 
 // After the connection is formed, the peripheral waits until the central
 // device asks for its preferred connection parameters
@@ -118,9 +118,6 @@ static Queue_Handle appMsgQueue;
 Task_Struct sbpTask;
 Char sbpTaskStack[SBP_TASK_STACK_SIZE];
 
-// BLE mac address.
-uint8_t mac_address[6];
-
 // Scan response data (max size = 31 bytes)
 static uint8_t scanRspData[] =
 {
@@ -129,6 +126,7 @@ static uint8_t scanRspData[] =
     GAP_ADTYPE_LOCAL_NAME_COMPLETE,
     'C','2','6','_','0','0','0','0','0','0',
 
+#if 0
     // connection interval range
     0x05,   // length of this data
     GAP_ADTYPE_SLAVE_CONN_INTERVAL_RANGE,
@@ -141,14 +139,14 @@ static uint8_t scanRspData[] =
     0x02,   // length of this data
     GAP_ADTYPE_POWER_LEVEL,
     0       // 0dBm
+#endif
 };
-
-
 
 // Advertisement data (max size = 31 bytes, though this is
 // best kept short to conserve power while advertising)
 static uint8_t advertData[] =
 {
+#if 0
     // Flags: this field sets the device to use general discoverable
     // mode (advertises indefinitely) instead of general
     // discoverable mode (advertise for 30 seconds at a time)
@@ -162,10 +160,27 @@ static uint8_t advertData[] =
     GAP_ADTYPE_16BIT_MORE,      // some of the UUID's, but not all
     LO_UINT16(EPD_SERVICE_SERV_UUID),
     HI_UINT16(EPD_SERVICE_SERV_UUID)
+
+#else
+    16, 0x16, // spec 
+    LO_UINT16(EPD_SERVICE_SERV_UUID), HI_UINT16(EPD_SERVICE_SERV_UUID),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // mac address
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06,   // data
+    0x07,
+
+    0x03,   // length of this data
+    GAP_ADTYPE_16BIT_MORE,      // some of the UUID's, but not all
+    LO_UINT16(EPD_SERVICE_SERV_UUID),
+    HI_UINT16(EPD_SERVICE_SERV_UUID)
+#endif
 };
 
 // GAP GATT Attributes
-static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "CC2640R2_ETAG";
+static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "C26_000000";
+
+// BLE mac address.
+//uint8_t mac_address[6];
+uint8_t *mac_address = &advertData[4];
 
 // Globals used for ATT Response retransmission
 static gattMsgEvent_t *pAttRsp = NULL;
@@ -263,6 +278,7 @@ static void SimpleBLEPeripheral_init(void)
         char buf[8];
         System_snprintf(buf, 8, "%02x%02x%02x", mac_address[3], mac_address[4], mac_address[5]);
         memcpy(scanRspData+6, buf, 6);
+        memcpy(attDeviceName+4, buf, 6);
     }
 
 #ifdef USE_RCOSC
@@ -357,17 +373,16 @@ static void SimpleBLEPeripheral_init(void)
         // initiate pairing
         uint8_t pairMode = GAPBOND_PAIRING_MODE_WAIT_FOR_REQ;
         // Use authenticated pairing: require passcode.
-        uint8_t mitm = TRUE;
+        uint8_t mitm = 0; //TRUE;
         // This device only has display capabilities. Therefore, it will display the
         // passcode during pairing. However, since the default passcode is being
         // used, there is no need to display anything.
         uint8_t ioCap = GAPBOND_IO_CAP_DISPLAY_ONLY;
         // Request bonding (storing long-term keys for re-encryption upon subsequent
         // connections without repairing)
-        uint8_t bonding = TRUE;
+        uint8_t bonding = 0; //TRUE;
 
-        GAPBondMgr_SetParameter(GAPBOND_DEFAULT_PASSCODE, sizeof(uint32_t),
-                                &passkey);
+        GAPBondMgr_SetParameter(GAPBOND_DEFAULT_PASSCODE, sizeof(uint32_t), &passkey);
         GAPBondMgr_SetParameter(GAPBOND_PAIRING_MODE, sizeof(uint8_t), &pairMode);
         GAPBondMgr_SetParameter(GAPBOND_MITM_PROTECTION, sizeof(uint8_t), &mitm);
         GAPBondMgr_SetParameter(GAPBOND_IO_CAPABILITIES, sizeof(uint8_t), &ioCap);
@@ -892,9 +907,11 @@ static void BLETask_EpdService_ValueChangeCB(uint16_t connHandle,
                                              uint16_t len,
                                              uint8_t *pValue)
 {
+#if 0
     if (len == 4) {
         Seconds_set(*((uint32_t*)pValue));
     }
+#endif    
 }
 
 static void BLETask_EpdService_CfgChangeCB(uint16_t connHandle,

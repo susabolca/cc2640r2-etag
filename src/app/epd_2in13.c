@@ -28,15 +28,6 @@ OBDISP obd;
 
 extern const uint8_t ucMirror[];
 
-/*
- * <int.frac> format size (3.8) bits.
- * int for 0-3 voltage
- * frac each means 1/256 of ONE voltage
- */
-#define INTFRAC_V(x)    (x>>8)
-#define INTFRAC_mV(x)   ((x&0xff)*1000/256)
-#define INTFRAC2MV(x)   (INTFRAC_mV(x)+(INTFRAC_V(x)*1000))
-
 // https://www.mdpi.com/2072-666X/12/5/578
 #define VSS  (0b00)
 #define VH1  (0b01)
@@ -110,9 +101,9 @@ static void EPD_2IN13_Lut(const unsigned char *lut)
     EPD_SSD_SendData(*(lut+158));
 }
 
-static uint8_t EPD_2IN13_ReadTemp()
+static int8_t EPD_2IN13_ReadTemp()
 {
-    uint8_t rc;
+    int8_t rc;
     
     // soft reset
     EPD_SSD_SendCommand(0x12);
@@ -243,8 +234,7 @@ void EPD_SSD_Update(void)
         return;
     }
     last = now;
-    // TBD: timezone +8
-    now += (3600 * 8);
+    now += utc_offset_mins * 60;
     struct tm *l = localtime(&now);
 
     // wakeup EPD
@@ -272,9 +262,9 @@ void EPD_SSD_Update(void)
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 118, buf, 1);
 
     // battery voltage
-    uint32_t v = AONBatMonBatteryVoltageGet();
-    uint8_t t = EPD_2IN13_ReadTemp();
-    System_snprintf(buf, 32, "%3uc %u.%uv", t, INTFRAC_V(v), INTFRAC_mV(v)/100);
+    uint16_t v = epd_battery;
+    epd_temperature = EPD_2IN13_ReadTemp();
+    System_snprintf(buf, 32, "%3uc %u.%uv", epd_temperature, INTFRAC_V(v), INTFRAC_mV(v)/100);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 164, 118, buf, 1);
 
     // time

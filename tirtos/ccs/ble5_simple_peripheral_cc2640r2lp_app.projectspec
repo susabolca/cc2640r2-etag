@@ -35,7 +35,7 @@
             -mv7M3 -O4 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
             -DDeviceFamily_CC26X0R2
             -DBOARD_DISPLAY_USE_LCD=0
-            -DBOARD_DISPLAY_USE_UART=1
+            -DBOARD_DISPLAY_USE_UART=0
             -DBOARD_DISPLAY_USE_UART_ANSI=1
             -DCC2640R2_LAUNCHXL
             -DCC26XX
@@ -105,7 +105,7 @@
             -mv7M3 -O4 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
             -DDeviceFamily_CC26X0R2
             -DBOARD_DISPLAY_USE_LCD=0
-            -DBOARD_DISPLAY_USE_UART=1
+            -DBOARD_DISPLAY_USE_UART=0
             -DBOARD_DISPLAY_USE_UART_ANSI=1
             -DCC2640R2_LAUNCHXL
             -DCC26XX
@@ -173,14 +173,22 @@
         <pathVariable name="SRC_BLE_DIR" path="${SDK_ROOT}/source/ti/ble5stack" scope="project"/>
 
         <!-- Application Folder -->
-        <file path="EXAMPLE_BLE_ROOT/src/app/epd2in13.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
-        <file path="EXAMPLE_BLE_ROOT/src/app/epd2in13.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd_2in9.c" openOnCreation="" excludeFromBuild="true" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd_2in13.c" openOnCreation="" excludeFromBuild="true" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd_driver.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/epd_driver.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/OneBitDisplay.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/OneBitDisplay.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/obd.inl" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font8.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font16.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font16zh.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font24.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font30.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font40.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font60.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font64.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font80.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/task_ble.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/task_ble.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/task_epd.c" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
