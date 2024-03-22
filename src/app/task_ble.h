@@ -1,15 +1,16 @@
 /******************************************************************************
 
- @file       simple_peripheral_menu.h
+ @file       simple_peripheral.h
 
- @brief This file contains menu objects for simple_peripheral.
+ @brief This file contains the Simple Peripheral sample application
+        definitions and prototypes.
 
- Group: WCS BTS
+ Group: CMCU, SCS
  Target Device: CC2640R2
 
  ******************************************************************************
  
- Copyright (c) 2016-2017, Texas Instruments Incorporated
+ Copyright (c) 2013-2017, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -44,8 +45,8 @@
  Release Date: 2017-07-20 17:16:59
  *****************************************************************************/
 
-#ifndef SIMPLE_PERIPHERAL_MENU_H
-#define SIMPLE_PERIPHERAL_MENU_H
+#ifndef SIMPLEBLEPERIPHERAL_H
+#define SIMPLEBLEPERIPHERAL_H
 
 #ifdef __cplusplus
 extern "C"
@@ -53,18 +54,26 @@ extern "C"
 #endif
 
 /*
- * Menus Declarations
+ * Task creation function for the Simple Peripheral.
  */
+extern void SimpleBLEPeripheral_createTask(void);
 
-/* Main Menu Object */
-extern tbmMenuObj_t sbpMenuMain;
+#if !defined(Display_DISABLE_ALL)
+/*
+ * Functions for menu action
+ */
+/* Actions for Menu: Start Device */
+bool SimpleBLEPeripheral_doStartDevice(uint8 index);
 
-/* Items of (Main) */
-/* Action items are defined in simple_peripheral_menu.c */
+/* Actions for Menu: Set PHY - Select */
+bool SimpleBLEPeripheral_doSetPhy(uint8 index);
+#endif  // !Display_DISABLE_ALL
+
+/*********************************************************************
+*********************************************************************/
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SIMPLE_PERIPHERAL_MENU_H */
-
+#endif /* SIMPLEBLEPERIPHERAL_H */

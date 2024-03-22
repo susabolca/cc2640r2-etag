@@ -1,0 +1,8 @@
+FlashROM_StackLibrary/
+FlashROM_Library/
+*.log
+Backup of *
+tirtos/iar/config/
+tirtos/iar/settings/
+tirtos/iar/*/settings/
+.vscode/
