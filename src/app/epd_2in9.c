@@ -284,8 +284,11 @@ void EPD_SSD_Update(void)
 
     // temp
     epd_temperature = EPD_2IN9_ReadTemp();
-    System_snprintf(buf, 32, "%3uc", epd_temperature);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 240, 22, buf, 1);
+    const uint8_t fmt[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
+    System_snprintf(buf, 32, fmt, epd_temperature);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 236, 22, buf, 1);
+    //const uint8_t degree[] = {0xb0, '\0'};   // degrees celsius
+    //obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 282, 22, degree, 1);
 
     // time
     System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);

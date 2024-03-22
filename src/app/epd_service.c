@@ -43,18 +43,18 @@ static gattCharCfg_t *EpdDataConfig;
 static CONST gattAttrType_t EpdServiceDecl = { ATT_BT_UUID_SIZE, EpdServiceUUID };
 static uint8 EpochProps = GATT_PROP_READ | GATT_PROP_WRITE;
 static uint8 EpochVal[4] = {0};
-static uint8 EpochDesc[] = "Unix Epoch";
+//static uint8 EpochDesc[] = "Unix Epoch";
 
 static uint8 UtcOffProps = GATT_PROP_READ | GATT_PROP_WRITE;
-static uint8 UtcOffDesc[] = "UTC Offset Mins";
+//static uint8 UtcOffDesc[] = "UTC Offset Mins";
 static int8  UtcOffVal[4] = {0};
 
 static uint8 BattProps = GATT_PROP_READ;
-static uint8 BattDesc[] = "Battery mv";
+//static uint8 BattDesc[] = "Battery mv";
 static uint8 BattVal[2] = {0};
 
 static uint8 TempProps = GATT_PROP_READ;
-static uint8 TempDesc[] = "Temperature";
+//static uint8 TempDesc[] = "Temperature";
 static int8  TempVal[1] = {0};
 
 static gattAttribute_t EpdServiceAttrTbl[] =
