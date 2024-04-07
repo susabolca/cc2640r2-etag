@@ -197,6 +197,7 @@ int main()
 #endif //CACHE_AS_RAM
 
 #if !defined( POWER_SAVING ) || defined( USE_FPGA )
+#error "don't set."
   /* Set constraints for Standby, powerdown and idle mode */
   // PowerCC26XX_SB_DISALLOW may be redundant
   Power_setConstraint(PowerCC26XX_SB_DISALLOW);
@@ -217,10 +218,10 @@ int main()
   /* Kick off profile - Priority 3 */
   GAPRole_createTask();
 
-  // BLE5 task
+  // BLE5 task -Priority 2
   SimpleBLEPeripheral_createTask();
 
-  // EPD task
+  // EPD task - Priority 1
   TaskEPD_createTask();
   
   /* enable interrupts and start SYS/BIOS */

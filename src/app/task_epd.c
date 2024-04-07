@@ -9,31 +9,37 @@
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Event.h>
 #include <util.h>
+#include <icall.h>
+/* This Header file contains all BLE API and icall structure definition */
+#include "icall_ble_api.h"
 
 //#include "board.h"
 #include "task_epd.h"
 #include "epd_driver.h"
 
-uint8_t VERSION_MAJOR = 0;
-uint8_t VERSION_MINOR = 2;
-
-#define EPD_TASK_PRIORITY                     2
+#define EPD_TASK_PRIORITY                     1
 #define EPD_TASK_STACK_SIZE                   512
 Task_Struct EPDTask;
 Char EPDTaskStack[EPD_TASK_STACK_SIZE];
+
+// Entity ID globally used to check for source and/or destination of messages
+static ICall_EntityID selfEntity;
+
+// Event globally used to post local events and pend on system and
+// local events.
+static ICall_SyncHandle syncEvent;
 
 // TBD: need this?
 uint32_t epoch_time = 0;
  
 // Event used to control the EPD thread
 Event_Struct EPDEvent;
-Event_Handle hEPDEvent;
+//Event_Handle hEPDEvent;
 
-#define EPDTASK_EVENT_RX_REQUEST        Event_Id_00 
+//#define EPDTASK_EVENT_RX_REQUEST        Event_Id_00
 #define EPDTASK_EVENT_PERIODIC          Event_Id_01
 
-#define EPDTASK_EVENT_ALL               ( EPDTASK_EVENT_RX_REQUEST | \
-                                          EPDTASK_EVENT_PERIODIC )
+#define EPDTASK_EVENT_ALL               ( EPDTASK_EVENT_PERIODIC )
 
 static Clock_Struct periodicClock;
 
@@ -57,11 +63,15 @@ void TaskEPD_createTask(void)
 
 static void EPDTask_clockHandler(UArg arg)
 {
-    Event_post(hEPDEvent, arg);
+    Event_post(syncEvent, arg);
 }
 
 void TaskEPD_taskInit(void)
 {
+    // Register the current thread as an ICall dispatcher application
+    // so that the application can send and receive messages.
+    ICall_registerApp(&selfEntity, &syncEvent);
+
     Util_constructClock(&periodicClock, EPDTask_clockHandler,
                         1000, 0, false, EPDTASK_EVENT_PERIODIC);
     EPD_Init();
@@ -70,27 +80,18 @@ void TaskEPD_taskInit(void)
 
 void TaskEPD_taskFxn(UArg a0, UArg a1)
 { 
-    Event_Params evParams;
-    Event_Params_init(&evParams);
-    Event_construct(&EPDEvent, &evParams);
-    hEPDEvent = Event_handle(&EPDEvent);
-    
     TaskEPD_taskInit();
     
     while (1)
     {
         UInt events;
-        events = Event_pend(hEPDEvent,Event_Id_NONE, EPDTASK_EVENT_ALL, BIOS_WAIT_FOREVER);
+        events = Event_pend(syncEvent, Event_Id_NONE, EPDTASK_EVENT_ALL, ICALL_TIMEOUT_FOREVER);
         
-        if (events & EPDTASK_EVENT_RX_REQUEST) {
-            //if (resp_fram_len) {
-            //    post_epd_response(epd_resp_frame, resp_fram_len);
-            //}
-        }    
-
         if (events & EPDTASK_EVENT_PERIODIC) {
+
+            EPD_Update();
+
             Util_startClock(&periodicClock);
-            EPD_Update(); 
         }
     }
 }

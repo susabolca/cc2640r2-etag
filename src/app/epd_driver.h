@@ -43,7 +43,7 @@ void EPD_SSD_SendData(uint8_t data);
 uint8_t EPD_SSD_ReadData();
 void EPD_SSD_ReadBytes(uint8_t* buf, uint8_t len);
 bool EPD_SSD_IsBusy();
-void EPD_SSD_WaitBusy();
+void EPD_SSD_WaitBusy(uint32_t ms);
 uint8_t EPD_BATT_Percent();
 
 // for epd_inch.c shoule implement,

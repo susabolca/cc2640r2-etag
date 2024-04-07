@@ -55,7 +55,7 @@ static const uint8_t lut_full_bwr[] = {
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
 //  56: LUTR x 7
-    0x1,    VSL|0x1f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0xa,
+    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
@@ -64,7 +64,7 @@ static const uint8_t lut_full_bwr[] = {
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
 //  112: LUTW x 7 
-    0x1,    VSL|0x2f,   0x0,        0x0,        0x0,        0x1,    0x0,
+    0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x2,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
@@ -73,7 +73,7 @@ static const uint8_t lut_full_bwr[] = {
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
 //  168: LUTB x 7
-    0x1,    VSH1|0x37,  0x0,        0x0,        0x0,        0x1,    0x0,
+    0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
@@ -118,12 +118,18 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
     EPD_SSD_SendData(*(lut+232));
 }
 
+static void EPD_2IN9_SoftReset()
+{
+    EPD_SSD_SendCommand(0x12); // soft reset
+    EPD_SSD_WaitBusy(100);
+}
+
 static int8_t EPD_2IN9_ReadTemp()
 {
     int8_t rc;
     
-    EPD_SSD_SendCommand(0x12); // soft reset
-    EPD_SSD_WaitBusy();
+    //EPD_SSD_SendCommand(0x12); // soft reset
+    //EPD_SSD_WaitBusy(100);
 
     // Border Waveform
     EPD_SSD_SendCommand(0x3C);
@@ -139,7 +145,7 @@ static int8_t EPD_2IN9_ReadTemp()
 
     // Master Activation
     EPD_SSD_SendCommand(0x20);
-    EPD_SSD_WaitBusy();
+    EPD_SSD_WaitBusy(100);
 
     // read temperature
     EPD_SSD_SendCommand(0x1b);
@@ -167,8 +173,8 @@ static void EPD_2IN9_BWR(int width, int height, int left, int top)
     int h1 = h0 + height/8 - 1;
     
     // soft reset
-    EPD_SSD_SendCommand(0x12); 
-    EPD_SSD_WaitBusy();
+    //EPD_SSD_SendCommand(0x12); 
+    //EPD_SSD_WaitBusy(100);
 
     // Border Waveform
     EPD_SSD_SendCommand(0x3C); 
@@ -230,7 +236,6 @@ void EPD_2IN9_Display(uint8_t reg)
     EPD_SSD_SendCommand(0x22);
     EPD_SSD_SendData(reg);
     EPD_SSD_SendCommand(0x20);
-    //EPD_SSD_WaitBusy();
 }
 
 void EPD_2IN9_Sleep(void)
@@ -241,16 +246,7 @@ void EPD_2IN9_Sleep(void)
 
 void EPD_SSD_Update(void)
 {
-    static bool need_sleep = 0;
     static time_t last = 0;
-
-    if (need_sleep) {
-        if (EPD_SSD_IsBusy()) {
-            return;
-        }
-        EPD_2IN9_Sleep();
-        need_sleep = 0;
-    }
 
     time_t now = time(NULL);
     if (last && ((now % 60) != 0)) {
@@ -263,9 +259,13 @@ void EPD_SSD_Update(void)
     // wakeup EPD
     EPD_SSD_Reset();
 
+    // create obd
     char buf[32];
     obdCreateVirtualDisplay(&obd, EPD_WIDTH, EPD_HEIGHT, epd_buffer);
     obdFill(&obd, 0, 0);
+
+    // soft reset
+    EPD_2IN9_SoftReset();
 
     // BLE dev name
     extern void getBleAdvName(char* buf);
@@ -284,11 +284,9 @@ void EPD_SSD_Update(void)
 
     // temp
     epd_temperature = EPD_2IN9_ReadTemp();
-    const uint8_t fmt[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
+    const char fmt[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
     System_snprintf(buf, 32, fmt, epd_temperature);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 236, 22, buf, 1);
-    //const uint8_t degree[] = {0xb0, '\0'};   // degrees celsius
-    //obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 282, 22, degree, 1);
 
     // time
     System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
@@ -301,22 +299,23 @@ void EPD_SSD_Update(void)
     }
 
     // full update every 30 mins
-    bool full_upd = (l->tm_min == 0 || l->tm_min == 30) ? true : false;
+    bool full_upd = (l->tm_min == 0) ? true : false;
     EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
     if (!full_upd) EPD_2IN9_Lut(lut_full_bwr);
     EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
     EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
     // show
-    EPD_2IN9_Display(full_upd ? 0xf7 : 0xc7);    // c7: by REG  f7: by OTP   b1: no display 
-    need_sleep = 1;
-    //EPD_SSD_WaitBusy();
-    //EPD_2IN9_Sleep();
+    EPD_2IN9_Display(full_upd ? 0xf7 : 0xc7);    // c7: by REG  f7: by OTP   b1: no display
+    //need_sleep = 1;
+
+    EPD_SSD_WaitBusy(15 * 1000);
+    EPD_2IN9_Sleep();
     return;
 }
 
 void EPD_SSD_Init(void)
 {
-
+    EPD_SSD_Reset();
 }
 

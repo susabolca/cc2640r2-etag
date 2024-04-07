@@ -248,4 +248,4 @@ const GFXglyph Dialog_plain_24Glyphs[] = {
   {  2135,   4,   4,   4,    0,  -18 }    // 0xB0 '°'
 };
 const GFXfont Dialog_plain_24 = {
-(uint8_t  *)Dialog_plain_24Bitmaps,(GFXglyph *)Dialog_plain_24Glyphs,0x20, 0xB0, 29};
+(uint8_t  *)Dialog_plain_24Bitmaps,(GFXglyph *)Dialog_plain_24Glyphs,0x20, 0xB1, 29};

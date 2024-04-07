@@ -64,7 +64,7 @@
 #define SBP_HCI_CONN_EVT_END_EVT              0x0001
 
 // Task configuration
-#define SBP_TASK_PRIORITY                     1
+#define SBP_TASK_PRIORITY                     2
 
 #ifndef SBP_TASK_STACK_SIZE
 #define SBP_TASK_STACK_SIZE                   644

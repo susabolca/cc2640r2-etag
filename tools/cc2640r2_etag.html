@@ -34,6 +34,7 @@
         info('> Found EPD service');
         epochCharacter = await epdService.getCharacteristic(0xfff1);
         document.getElementById("btnConnect").innerHTML = 'Disconnect';
+        document.getElementById('etagFn').style.visibility='';
       }
     }
 
@@ -44,6 +45,7 @@
         info('Disconnected.');
         
         document.getElementById("btnConnect").innerHTML = 'Connect';
+        document.getElementById('etagFn').style.visibility='hidden';
     }
 
     async function doSetTime() {
@@ -53,6 +55,45 @@
         arr[0] = epoch;
         await epochCharacter.writeValueWithResponse(arr);
         info("Write unix epoch: " + epoch);
+    }
+
+    async function doReadEtag() {
+        var host_epoch = Date.now() / 1000 | 0;
+
+        // read current time
+        var chr = await epdService.getCharacteristic(0xfff1);
+        var epoch = (await chr.readValue()).getUint32(0, 1);
+
+        // read time zone
+        var chr = await epdService.getCharacteristic(0xfff2);
+        var tz_min = (await chr.readValue()).getInt32(0, 1);
+        info(`# host time: ${host_epoch}, diff (${epoch - host_epoch}) seconds.`);
+        info(`# etag time: ${epoch}, tz: ${tz_min} minutes of UTC.`);
+        
+        // battery
+        var chr = await epdService.getCharacteristic(0xfff3);
+        var batt = (await chr.readValue()).getUint16(0, 1);
+
+        // Temperature
+        var chr = await epdService.getCharacteristic(0xfff4);
+        var temp = (await chr.readValue()).getInt8(0, 1);
+        info(`# etag sensor: battery(${batt}mv), temperature(${temp}'C). `);
+
+        // RTC Collaborate
+        var chr = await epdService.getCharacteristic(0xfff5);
+        var rtc_collab = (await chr.readValue()).getInt8(0, 1);
+        info(`# rtc collab: ${rtc_collab} every 1 second.`);
+    }
+
+    async function doRtcCollab() {
+        var col = prompt("对 32.768kHz 晶振补偿频漂，走时快补偿负数，走时慢补偿正数。可选范围 (-3 ~ 3)", 0);
+        if (col == null || col < -3 || col > 3) return;
+        var chr = await epdService.getCharacteristic(0xfff5);
+        var buf = new ArrayBuffer(1);
+        var arr = new Int8Array(buf);
+        arr[0] = parseInt(col);
+        await chr.writeValueWithResponse(arr);
+        info(`write RTC collabration: ${col}`);
     }
 
     function info(logTXT) {
@@ -67,8 +108,18 @@
     }
 </script>
 
-<button id="btnConnect" type="button" onclick="doConnect()">Connect</button>
+<p>
+  <label> Choose </label>
+  <button id="btnConnect" type="button" onclick="doConnect()">Connect</button>
+</p>
+<p id="etagFn" style="visibility:hidden;">
+<button id="btnReadEtag" type="button" onclick="doReadEtag()">ReadEtag</button>
 <button id="btnSetTime" type="button" onclick="doSetTime()">SetTime</button>
-
-<div id="log"></div>
+<button id="btnRtcCollab" type="button" onclick="doRtcCollab()">RtcCollab</button>
+</p>
+<p>
+<div id="log">
+CC2640R2-ETAG Webtool. <br/>
+</div>
+</p>
 </html>

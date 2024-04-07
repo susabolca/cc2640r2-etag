@@ -5,6 +5,7 @@
 #include <ti/drivers/PIN.h>
 #include <ti/sysbios/knl/Clock.h>   // Clock_tickPeriod
 #include <ti/sysbios/knl/Task.h>    // Task_sleep
+#include <driverlib/cpu.h>  // CPUDelay
 
 #include "epd_driver.h"
 
@@ -62,7 +63,7 @@ static inline void DEV_Delay_ms(uint16_t t)
 
 static inline void DEV_Delay_us(uint16_t t)
 {
-    while(t--);
+    CPUdelay(t);
 }
 
 static inline void DEV_SPI_WriteByte(uint8_t byte)
@@ -105,9 +106,9 @@ static inline uint8_t DEV_SPI_ReadByte()
 void EPD_SSD_Reset()
 {    
     DEV_Digital_Write(EPD_RST_PIN, 0);
-    DEV_Delay_ms(10);
+    DEV_Delay_ms(20);
     DEV_Digital_Write(EPD_RST_PIN, 1);
-    DEV_Delay_ms(10);
+    DEV_Delay_ms(20);
 }
 
 void EPD_SSD_SendCommand(uint8_t Reg)
@@ -170,9 +171,10 @@ bool EPD_SSD_IsBusy()
     return (DEV_Digital_Read(EPD_BUSY_PIN) == 1);
 }
 
-void EPD_SSD_WaitBusy(void)
+void EPD_SSD_WaitBusy(uint32_t ms)
 {
-    while (EPD_SSD_IsBusy()) {
+    for (uint32_t i=0; i<ms; i+=10) {
+        if (!EPD_SSD_IsBusy()) return;
         DEV_Delay_ms(10);
     }
 }
@@ -239,6 +241,30 @@ uint8_t EPD_BATT_Percent(void)
 
 #endif
 
+#if 1
+#include <driverlib/aon_wuc.h>
+#include <driverlib/../inc/hw_aux_wuc.h>
+
+// collaborate rtc tick, slow down(<0), speed up(>0)
+void RTC_Collaborate( int rtc_collab )
+{
+   uint32_t subSecInc = (0x8000 + rtc_collab) << 8;
+   // Loading a new RTCSUBSECINC value is done in 5 steps:
+   // 1. Write bit[15:0] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC0
+   // 2. Write bit[23:16] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC1
+   // 3. Set AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
+   // 4. Wait for AUX_WUC_RTCSUBSECINCCTL_UPD_ACK
+   // 5. Clear AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
+   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC0 ) = (( subSecInc       ) & 0xFFFF );
+   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC1 ) = (( subSecInc >> 16 ) & 0xFF );
+
+   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 1;
+   while( ! ( HWREGBITW( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL, AUX_WUC_RTCSUBSECINCCTL_UPD_ACK_BITN )));
+   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 0;
+}
+
+#endif
+
 // should be only called once!
 void EPD_Init()
 {
@@ -246,6 +272,12 @@ void EPD_Init()
 
     // test LUT size
     //lut_size = EPD_LUT_Detect();
+
+    // if the rtc ahead 10 seconds per day (24 hours)
+    // ICALL still using 0x8000 (32768 ticks) for 1 seconds, 
+    // (0x8000 + x) / 0x8000 = (24 * 3600) / (24 * 3600 - 10)
+    // 32768 * 10 / (24 * 3600) = 3.793
+    //RTC_Collaborate(-3);
 
     EPD_SSD_Init();
 }

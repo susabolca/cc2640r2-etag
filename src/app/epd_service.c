@@ -36,6 +36,10 @@ CONST uint8 EpdTempUUID[ATT_BT_UUID_SIZE] = {
     LO_UINT16(EPD_TEMP_UUID), HI_UINT16(EPD_TEMP_UUID),
 };
 
+CONST uint8 EpdRtcCollabUUID[ATT_BT_UUID_SIZE] = {
+    LO_UINT16(EPD_RTC_COLLAB_UUID), HI_UINT16(EPD_RTC_COLLAB_UUID),
+};
+
 static EpdServiceCBs_t *pAppCBs = NULL;
 static gattCharCfg_t *EpdDataConfig;
 
@@ -56,6 +60,9 @@ static uint8 BattVal[2] = {0};
 static uint8 TempProps = GATT_PROP_READ;
 //static uint8 TempDesc[] = "Temperature";
 static int8  TempVal[1] = {0};
+
+static uint8 RtcCollabProps = GATT_PROP_READ | GATT_PROP_WRITE;
+static int8 RtcCollabVal[1] = {0};
 
 static gattAttribute_t EpdServiceAttrTbl[] =
 {
@@ -97,7 +104,6 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             UtcOffVal 
         },
 
-#if 1
     // Characteristic Declaration
     {
         { ATT_BT_UUID_SIZE, characterUUID },
@@ -127,7 +133,21 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             0,
             TempVal 
         },
-#endif        
+
+    // Characteristic Declaration
+    {
+        { ATT_BT_UUID_SIZE, characterUUID },
+        GATT_PERMIT_READ,
+        0,
+        &RtcCollabProps
+    },
+        // Characteristic Value
+        {
+            { ATT_BT_UUID_SIZE, EpdRtcCollabUUID },
+            GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+            0,
+            RtcCollabVal 
+        },
 };
 
 
@@ -315,6 +335,13 @@ static bStatus_t EPDService_ReadAttrCB(uint16_t connHandle,
             break;
         }
 
+        case EPD_RTC_COLLAB_UUID: {
+            int8_t v = RtcCollabVal[0];
+            *pLen = sizeof(v);
+            memcpy(pValue, &v, *pLen);
+            break;   
+        }
+
         default:
             return ATT_ERR_ATTR_NOT_FOUND;
     }
@@ -356,9 +383,19 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
             break;
         }
 
+        case EPD_RTC_COLLAB_UUID: {
+            if (len == 1) {
+                int8_t v = *(int8_t*)pValue;
+                RTC_Collaborate(v);
+                RtcCollabVal[0] = v;
+            }
+            break;
+        }
+        
         case GATT_CLIENT_CHAR_CFG_UUID:
             status = GATTServApp_ProcessCCCWriteReq(connHandle, pAttr, pValue, len, offset, GATT_CLIENT_CFG_NOTIFY);
             break; 
+
 
         default:
             return ATT_ERR_ATTR_NOT_FOUND;
