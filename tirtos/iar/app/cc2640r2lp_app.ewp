@@ -238,8 +238,8 @@
                     <state>ICALL_EVENTS</state>
                     <state>ICALL_JT</state>
                     <state>ICALL_LITE</state>
-                    <state>ICALL_MAX_NUM_ENTITIES=6</state>
-                    <state>ICALL_MAX_NUM_TASKS=3</state>
+                    <state>ICALL_MAX_NUM_ENTITIES=7</state>
+                    <state>ICALL_MAX_NUM_TASKS=4</state>
                     <state>ICALL_STACK0_ADDR</state>
                     <state>MAX_NUM_BLE_CONNS=1</state>
                     <state>POWER_SAVING</state>

@@ -43,8 +43,8 @@
             -DICALL_EVENTS
             -DICALL_JT
             -DICALL_LITE
-            -DICALL_MAX_NUM_ENTITIES=6
-            -DICALL_MAX_NUM_TASKS=3
+            -DICALL_MAX_NUM_ENTITIES=7
+            -DICALL_MAX_NUM_TASKS=4
             -DICALL_STACK0_ADDR
             -DPOWER_SAVING
             -DRF_SINGLEMODE
@@ -113,8 +113,8 @@
             -DICALL_EVENTS
             -DICALL_JT
             -DICALL_LITE
-            -DICALL_MAX_NUM_ENTITIES=6
-            -DICALL_MAX_NUM_TASKS=3
+            -DICALL_MAX_NUM_ENTITIES=7
+            -DICALL_MAX_NUM_TASKS=4
             -DICALL_STACK0_ADDR
             -DPOWER_SAVING
             -DRF_SINGLEMODE
