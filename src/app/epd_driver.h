@@ -45,6 +45,8 @@ enum EPD_CMD {
     EPD_CMD_BW,         // write EPD Black/White
     EPD_CMD_RED,        // write EPD Red
     EPD_CMD_DP,         // EPD display
+    EPD_CMD_LUT,        // set lut
+    EPD_CMD_RST,        // reset EPD
 
     EPD_CMD_MAX
 };
