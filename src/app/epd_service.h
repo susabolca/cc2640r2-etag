@@ -19,7 +19,10 @@
 #define EPD_TEMP_UUID               0xFFF4
 
 // RTC collaboration value 
-#define EPD_RTC_COLLAB_UUID               0xFFF5
+#define EPD_RTC_COLLAB_UUID         0xFFF5
+
+// EPD RXTX service
+#define EPD_RXTX_UUID               0xFFFE
 
 // Callback when a characteristic value has changed
 typedef void (*EpdServiceChange_t)(uint16_t connHandle, uint8_t paramID,

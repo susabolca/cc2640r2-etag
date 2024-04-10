@@ -38,6 +38,9 @@ int8_t epd_temperature;
 // local time to UTC time offset, in minuts.
 int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
 
+// display mode
+uint8_t epd_mode = EPD_MODE_CLOCK;
+
 /*
  * Device APIs
  */
@@ -264,6 +267,65 @@ void RTC_Collaborate( int rtc_collab )
 }
 
 #endif
+
+// do command from BLE
+uint8_t epd_step = 0;
+void EPD_Command(const uint8_t *cmd, int cmd_len)
+{
+    // buffer recv position (max 64k)
+    static uint16_t buf_cur = 0; 
+    bool need_update = 0;
+
+    switch (cmd[0]) {
+        // clear screen 
+        case EPD_CMD_CLR:
+            epd_step = 0;
+            epd_mode = 0;
+            break;
+
+        // change display mode
+        case EPD_CMD_MODE:
+            epd_mode = cmd[1];
+            if (epd_mode == EPD_MODE_IMG) {
+                epd_step = 1;
+            }
+            break;
+
+        // recv epd_buffer
+        case EPD_CMD_BUF:
+            buf_cur = 0;
+            // pass through
+        case EPD_CMD_BUF_CONT: {
+            uint16_t len = cmd_len - 1;
+            len = MIN(len, (EPD_BUF_MAX - buf_cur));
+            memcpy(&epd_buffer[buf_cur], &cmd[1], len);
+            buf_cur += len;
+            break;
+        }
+
+        case EPD_CMD_BW:
+            epd_step = 2;
+            need_update = 1;
+            break;
+
+        case EPD_CMD_RED:
+            epd_step = 3;
+            need_update = 1;
+            break;
+
+        case EPD_CMD_DP:
+            epd_step = 4;
+            need_update = 1;
+            break;
+
+        default:
+            return;
+    }
+
+    if (need_update) {
+        EPDTask_Update();
+    }
+}
 
 // should be only called once!
 void EPD_Init()

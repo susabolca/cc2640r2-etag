@@ -58,7 +58,7 @@
 #define DEFAULT_CONN_PAUSE_PERIPHERAL         6
 
 // How often to perform periodic event (in msec)
-#define SBP_PERIODIC_EVT_PERIOD               5000
+//#define SBP_PERIODIC_EVT_PERIOD               5000
 
 // Application specific event ID for HCI Connection Event End Events
 #define SBP_HCI_CONN_EVT_END_EVT              0x0001
@@ -806,7 +806,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
         uint8_t systemId[DEVINFO_SYSTEM_ID_LEN];
 
         GAPRole_GetParameter(GAPROLE_BD_ADDR, ownAddress);
-
+#if 0
         // use 6 bytes of device address for 8 bytes of system ID value
         systemId[0] = ownAddress[0];
         systemId[1] = ownAddress[1];
@@ -826,6 +826,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
         // Display device address
         Display_print0(dispHandle, SBP_ROW_BDADDR, 0, Util_convertBdAddr2Str(ownAddress));
         Display_print0(dispHandle, SBP_ROW_ROLESTATE, 0, "Initialized");
+#endif        
       }
       break;
 

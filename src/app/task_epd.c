@@ -66,6 +66,11 @@ static void EPDTask_clockHandler(UArg arg)
     Event_post(syncEvent, arg);
 }
 
+void EPDTask_Update(UArg arg)
+{
+    Event_post(syncEvent, EPDTASK_EVENT_PERIODIC);
+}
+
 void TaskEPD_taskInit(void)
 {
     // Register the current thread as an ICall dispatcher application

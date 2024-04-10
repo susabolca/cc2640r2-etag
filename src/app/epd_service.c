@@ -40,29 +40,39 @@ CONST uint8 EpdRtcCollabUUID[ATT_BT_UUID_SIZE] = {
     LO_UINT16(EPD_RTC_COLLAB_UUID), HI_UINT16(EPD_RTC_COLLAB_UUID),
 };
 
+CONST uint8 EpdRxTxUUID[ATT_BT_UUID_SIZE] = {
+    LO_UINT16(EPD_RXTX_UUID), HI_UINT16(EPD_RXTX_UUID),
+};
+
 static EpdServiceCBs_t *pAppCBs = NULL;
 static gattCharCfg_t *EpdDataConfig;
 
 // Service declaration
 static CONST gattAttrType_t EpdServiceDecl = { ATT_BT_UUID_SIZE, EpdServiceUUID };
+
+//static uint8 EpochDesc[] = "Unix Epoch";
 static uint8 EpochProps = GATT_PROP_READ | GATT_PROP_WRITE;
 static uint8 EpochVal[4] = {0};
-//static uint8 EpochDesc[] = "Unix Epoch";
 
-static uint8 UtcOffProps = GATT_PROP_READ | GATT_PROP_WRITE;
 //static uint8 UtcOffDesc[] = "UTC Offset Mins";
+static uint8 UtcOffProps = GATT_PROP_READ | GATT_PROP_WRITE;
 static int8  UtcOffVal[4] = {0};
 
-static uint8 BattProps = GATT_PROP_READ;
 //static uint8 BattDesc[] = "Battery mv";
+static uint8 BattProps = GATT_PROP_READ;
 static uint8 BattVal[2] = {0};
 
-static uint8 TempProps = GATT_PROP_READ;
 //static uint8 TempDesc[] = "Temperature";
+static uint8 TempProps = GATT_PROP_READ;
 static int8  TempVal[1] = {0};
 
+// RTC Collaboration
 static uint8 RtcCollabProps = GATT_PROP_READ | GATT_PROP_WRITE;
 static int8 RtcCollabVal[1] = {0};
+
+// RxTx service
+static uint8 RxTxProps = GATT_PROP_READ | GATT_PROP_WRITE;
+static uint8 RxTxBuf[64];
 
 static gattAttribute_t EpdServiceAttrTbl[] =
 {
@@ -148,6 +158,21 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             0,
             RtcCollabVal 
         },
+
+    // Characteristic Declaration
+    {
+        { ATT_BT_UUID_SIZE, characterUUID },
+        GATT_PERMIT_READ,
+        0,
+        &RxTxProps
+    },
+        // Characteristic Value
+        {
+            { ATT_BT_UUID_SIZE, EpdRxTxUUID },
+            GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+            0,
+            RxTxBuf 
+        },
 };
 
 
@@ -231,45 +256,13 @@ bStatus_t EPDService_GetParameter(uint8_t param, uint16_t *len, void *value)
 {
     bStatus_t ret = SUCCESS;
     switch (param) {
-#if 0
-        case EPD_EPOCH_ID:
-            *len = 4;
-            memcpy(value, EpochVal, *len);
-            break;
-#endif    
+
         default:
             ret = INVALIDPARAMETER;
             break;
     }
     return ret;
 }
-
-#if 0
-static uint8_t EPDService_findCharParamId(gattAttribute_t *pAttr)
-{
-#if 0
-    // Is this a Client Characteristic Configuration Descriptor?
-    if(ATT_BT_UUID_SIZE == pAttr->type.len && GATT_CLIENT_CHAR_CFG_UUID ==
-       *(uint16_t *)pAttr->type.uuid) {
-        return (EPDService_findCharParamId(pAttr - 1)); // Assume the value attribute precedes CCCD and recurse
-    } elif
-#endif 
-    if (ATT_BT_UUID_SIZE == pAttr->type.len) {
-        uint16_t uuid = BUILD_UINT16(pAttr->type.uuid[0], pAttr->type.uuid[1]);
-        switch (uuid) {
-            case EPD_EPOCH_UUID:
-                return EPD_EPOCH_ID;
-            case EPD_UTC_OFFSET_UUID:
-                return EPD_UTC_OFFSET_ID;
-            case EPD_BATT_UUID:
-                return EPD_BATT_ID;
-            case EPD_TEMP_UUID:
-                return EPD_TEMP_ID;
-        }
-    }
-    return 0xFF; // Not found. Return invalid.
-}
-#endif 
 
 static bStatus_t utilExtractUuid16(gattAttribute_t *pAttr, uint16_t *pUuid)
 {
@@ -342,6 +335,12 @@ static bStatus_t EPDService_ReadAttrCB(uint16_t connHandle,
             break;   
         }
 
+        case EPD_RXTX_UUID: {
+            *pLen = MIN(64, maxLen);
+            memcpy(pValue, epd_buffer, *pLen);
+            break;
+        }
+
         default:
             return ATT_ERR_ATTR_NOT_FOUND;
     }
@@ -391,7 +390,15 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
             }
             break;
         }
-        
+
+        case EPD_RXTX_UUID: {
+            if (len < 64) {
+                //memcpy(RxTxBuf, pValue, len);
+                EPD_Command(pValue, len);
+            }
+            break;
+        }
+
         case GATT_CLIENT_CHAR_CFG_UUID:
             status = GATTServApp_ProcessCCCWriteReq(connHandle, pAttr, pValue, len, offset, GATT_CLIENT_CFG_NOTIFY);
             break; 

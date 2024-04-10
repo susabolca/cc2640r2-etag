@@ -25,6 +25,30 @@ extern int32_t utc_offset_mins;
 // public sensor values
 extern int8_t epd_temperature;          // in degree celsius, +/-127
 extern uint16_t epd_battery;            // in (3.8) frac
+
+// display mode 
+extern uint8_t epd_mode;
+#define EPD_MODE_CLOCK      0           // realtime clock 
+#define EPD_MODE_IMG        1           // static image 
+
+// TBD: split image display to steps in a dirty way.
+extern uint8_t epd_step;
+
+// EPD service commands
+enum EPD_CMD {
+    EPD_CMD_NC = 0,     // nothing
+
+    EPD_CMD_CLR,        // clear screen
+    EPD_CMD_MODE,       // set display mode
+    EPD_CMD_BUF,        // first receive to epd_buffer
+    EPD_CMD_BUF_CONT,   // continue write to epd_buffer 
+    EPD_CMD_BW,         // write EPD Black/White
+    EPD_CMD_RED,        // write EPD Red
+    EPD_CMD_DP,         // EPD display
+
+    EPD_CMD_MAX
+};
+
 /*
  * <int.frac> format size (3.8) bits.
  * int for 0-3 voltage
@@ -33,6 +57,10 @@ extern uint16_t epd_battery;            // in (3.8) frac
 #define INTFRAC_V(x)    (x>>8)
 #define INTFRAC_mV(x)   ((x&0xff)*125/32)
 #define INTFRAC2MV(x)   (INTFRAC_mV(x)+(INTFRAC_V(x)*1000))
+
+// Macro
+#define MIN(a,b) ((a) < (b) ? a : b)
+#define MAX(a,b) ((a) > (b) ? a : b)
 
 // the driver public,
 void EPD_Init();
