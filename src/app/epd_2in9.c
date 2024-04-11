@@ -184,7 +184,7 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
     // 229, source voltage
     EPD_SSD_SendCommand(0x04);
     EPD_SSD_SendData(0x41);    // VSH
-    EPD_SSD_SendData(0x95);    // VSH2
+    EPD_SSD_SendData(0x94);    // VSH2
     EPD_SSD_SendData(0x32);    // VSL
 
     // 232, VCOM
