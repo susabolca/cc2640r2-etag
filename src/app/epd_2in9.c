@@ -44,9 +44,8 @@ extern const uint8_t ucMirror[];
 #define VSH2 _VS(0b11)
 
 #if 0
-/*  the LUT most values are zeros. 
+/*  the LUT lots of values are zeros, use a lite version instead.
  */
-
 static const uint8_t lut_full_bwr[] = {
 //  0: LUTC x 7 
 //  RP      A           B           C           D           SRAB    SRCD
@@ -59,7 +58,7 @@ static const uint8_t lut_full_bwr[] = {
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
 //  56: LUTR x 7
-    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0x0,
+    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0xa,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
@@ -97,39 +96,53 @@ static const uint8_t lut_full_bwr[] = {
 //  22      -20v    15v     3v      -15v
     0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
-#else
-// LUT for clock fast display.
-static const uint8_t lut_full_bwr[] = {
+
+static void EPD_2IN9_Lut(const unsigned char *lut)
+{
+    EPD_SSD_SendCommand(0x32);
+    for(int i=0; i<227; i++) {
+        EPD_SSD_SendData(lut[i]);
+    }
+
+    // gate voltage
+    EPD_SSD_SendCommand(0x3F);
+    EPD_SSD_SendData(*(lut+227));
+
+    EPD_SSD_SendCommand(0x03);
+    EPD_SSD_SendData(*(lut+228));
+
+    // source voltage
+    EPD_SSD_SendCommand(0x04);
+    EPD_SSD_SendData(*(lut+229));    // VSH
+    EPD_SSD_SendData(*(lut+230));    // VSH2
+    EPD_SSD_SendData(*(lut+231));    // VSL
+
+    EPD_SSD_SendCommand(0x2C);
+    EPD_SSD_SendData(*(lut+232));
+}
+#endif
+
+// LUT for clock fast display. (only black/white)
+static const uint8_t lut_lite_fast_bw[] = {
 //  RP      A           B           C           D           SRAB    SRCD
-// LUTC
-    0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
-// LUTR 
-    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0x0,
-// LUTW
-    0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x2,    0x0,
-// LUTB
-    0x1,    VSH1|0x08,  0x0,        0x0,        0x0,        0x1,    0x0,
+    0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTC
+    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0x0,            // LUTR 
+    0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x1,    0x0,            // LUTW
+    0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
 };
 
 // LUT for BLE Gray display (4 steps)
-static const uint8_t lut_lite_gray4_bwr[] = {
+static const uint8_t lut_lite_gray8_bwr[] = {
 //  RP      A           B           C           D           SRAB    SRCD
-// LUTC
-    0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
-// LUTR 
-    0x1,    VSH2|0x3f,  0x0,        0x0,        0x0,        0x1,    0x0,
-// LUTW
-    0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,
-// LUTB
-    0x1,    VSH1|0x03,  0x0,        0x0,        0x0,        0x1,    0x0,
+    0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTC
+    0x1,    VSH2|0x3f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTR 
+    0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTW
+    0x1,    VSH1|0x03,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
 };
 
 // LUT for BLE user defined.
 static uint8_t lut_lite_ble[7*4] = {0};
 
-#endif
-
-#if 1
 static void EPD_2IN9_Lut(const unsigned char *lut)
 {
     // SSD1680A uses 233 LUT.
@@ -171,39 +184,13 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
     // 229, source voltage
     EPD_SSD_SendCommand(0x04);
     EPD_SSD_SendData(0x41);    // VSH
-    EPD_SSD_SendData(0x94);    // VSH2
+    EPD_SSD_SendData(0x95);    // VSH2
     EPD_SSD_SendData(0x32);    // VSL
 
     // 232, VCOM
     EPD_SSD_SendCommand(0x2C);
     EPD_SSD_SendData(0x36);
 }
-
-#else
-static void EPD_2IN9_Lut(const unsigned char *lut)
-{
-    EPD_SSD_SendCommand(0x32);
-    for(int i=0; i<227; i++) {
-        EPD_SSD_SendData(lut[i]);
-    }
-
-    // gate voltage
-    EPD_SSD_SendCommand(0x3F);
-    EPD_SSD_SendData(*(lut+227));
-
-    EPD_SSD_SendCommand(0x03);
-    EPD_SSD_SendData(*(lut+228));
-
-    // source voltage
-    EPD_SSD_SendCommand(0x04);
-    EPD_SSD_SendData(*(lut+229));    // VSH
-    EPD_SSD_SendData(*(lut+230));    // VSH2
-    EPD_SSD_SendData(*(lut+231));    // VSL
-
-    EPD_SSD_SendCommand(0x2C);
-    EPD_SSD_SendData(*(lut+232));
-}
-#endif
 
 static void EPD_2IN9_SoftReset()
 {
@@ -354,15 +341,24 @@ void EPD_2IN9_Clear(void)
 
 void EPD_2IN9_Update_Clock(void)
 {
-    static time_t last = 0;
+    time_t now;
+    time(&now);
 
-    time_t now = time(NULL);
-    if (last && ((now % 60) != 0)) {
+    if (clock_last && ((now % 60) != 0)) {
         return;
     }
-    last = now;
+ 
+    // adjust TZ offset
     now += utc_offset_mins * 60;
+
+    // get localtime
     struct tm *l = localtime(&now);
+
+    // full update on first start
+    bool full_upd = (clock_last == 0 || l->tm_min == 0) ? true : false;
+
+    // clock started.
+    clock_last = 1;
 
     // wakeup EPD
     EPD_SSD_Reset();
@@ -407,9 +403,8 @@ void EPD_2IN9_Update_Clock(void)
     }
 
     // full update every 30 mins
-    bool full_upd = (l->tm_min == 0) ? true : false;
     EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-    if (!full_upd) EPD_2IN9_Lut(lut_full_bwr);
+    if (!full_upd) EPD_2IN9_Lut(lut_lite_fast_bw);
     EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
     EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
@@ -424,57 +419,79 @@ void EPD_2IN9_Update_Clock(void)
 
 void EPD_2IN9_Update_Image()
 {
-    static uint8_t last_step = 0;
+    //static uint8_t last_step = 0;
     uint8_t step = epd_step;
 
-    if (last_step == step) {
-        return;
-    }
-
     switch (step) {
+        case EPD_CMD_CLR:
+            EPD_2IN9_Clear();
+            break;
 
-    case 1: // reset
-        // wakeup EPD
-        EPD_SSD_Reset();
-        // soft reset
-        EPD_2IN9_SoftReset();
-        // ready BWR 
-        EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-        // lut
-        EPD_2IN9_Lut(lut_lite_gray4_bwr);
-        break;
-        
-    case 2: // write BW ram
-        EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
-        break;
+        case EPD_CMD_MODE:
+            EPD_2IN9_Clear();
+            break;
 
-    case 3: // write Red ram
-        EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
-        break;
+        case EPD_CMD_RST: // reset
+            // wakeup EPD
+            EPD_SSD_Reset();
+            // soft reset
+            EPD_2IN9_SoftReset();
+            // ready BWR 
+            EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
+            //EPD_2IN9_Lut(lut_lite_gray8_bwr);
+            break;
+            
+        case EPD_CMD_BW: // write BW ram
+            EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+            break;
 
-    case 4: // master
-        EPD_2IN9_Display(0xc7);    // fast display
-        EPD_SSD_WaitBusy(3 * 1000);
-        EPD_2IN9_Sleep();
-        break;
+        case EPD_CMD_RED: // write Red ram
+            EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+            break;
+
+        case EPD_CMD_DP: { // master
+            uint8_t dpm = epd_step_data[0];
+            #if 1
+            if (dpm == 1) { // gray8 lut
+                EPD_2IN9_Lut(lut_lite_gray8_bwr);
+            } else if (dpm == 0xff) {   // user ble lut
+                EPD_2IN9_Lut(lut_lite_ble);
+            }
+            #endif
+            EPD_2IN9_Display(dpm ? 0xc7: 0xf7);    // fast display
+            EPD_SSD_WaitBusy(15 * 1000);
+            EPD_2IN9_Sleep();
+            break;
+        }
     }
 
-    last_step = step;
+    // done
+    if (step == epd_step) {
+        epd_step = EPD_CMD_NC;
+    }
 }
 
-void EPD_SSD_Update(void)
+int EPD_SSD_Update(void)
 {
-    if (epd_mode == EPD_MODE_CLOCK) {
-        //EPD_2IN9_Update_Clock();
-        EPD_2IN9_Clear();
-        epd_mode = EPD_MODE_IMG;
-    } else if (epd_mode == EPD_MODE_IMG) {
+    if (epd_mode == EPD_MODE_IMG) {
         EPD_2IN9_Update_Image();
+        // stop tick clock
+        return 0;
     }
+    // default mode
+    EPD_2IN9_Update_Clock();
+    // need tick clock
+    return 1;
 }
 
 void EPD_SSD_Init(void)
 {
     EPD_SSD_Reset();
+
+    // if the rtc ahead 10 seconds per day (24 hours)
+    // ICALL still using 0x8000 (32768 ticks) for 1 seconds, 
+    // (0x8000 + x) / 0x8000 = (24 * 3600) / (24 * 3600 - 10)
+    // 32768 * 10 / (24 * 3600) = 3.793
+    RTC_SetCollaborate(-3);
 }
 

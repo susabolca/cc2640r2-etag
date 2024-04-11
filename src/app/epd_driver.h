@@ -1,7 +1,7 @@
 #ifndef _EPD_DRIVER_H_
 #define _EPD_DRIVER_H_
 
-#include <stdint.h>
+#include <stdint.h>     // uint8_t
 
 // select a EPD device 
 //#define EPD_2IN13_SSD1680
@@ -33,20 +33,26 @@ extern uint8_t epd_mode;
 
 // TBD: split image display to steps in a dirty way.
 extern uint8_t epd_step;
+#define EPD_STEP_DATA_LEN       4
+extern uint8_t epd_step_data[EPD_STEP_DATA_LEN];
+
+// saved clock tick.
+extern uint8_t clock_last;
 
 // EPD service commands
 enum EPD_CMD {
     EPD_CMD_NC = 0,     // nothing
 
+    // keep order
     EPD_CMD_CLR,        // clear screen
     EPD_CMD_MODE,       // set display mode
     EPD_CMD_BUF,        // first receive to epd_buffer
     EPD_CMD_BUF_CONT,   // continue write to epd_buffer 
+    EPD_CMD_LUT,        // set lut
+    EPD_CMD_RST,        // reset EPD
     EPD_CMD_BW,         // write EPD Black/White
     EPD_CMD_RED,        // write EPD Red
     EPD_CMD_DP,         // EPD display
-    EPD_CMD_LUT,        // set lut
-    EPD_CMD_RST,        // reset EPD
 
     EPD_CMD_MAX
 };
@@ -66,7 +72,7 @@ enum EPD_CMD {
 
 // the driver public,
 void EPD_Init();
-void EPD_Update();
+int EPD_Update();
 void EPD_SSD_Reset();
 void EPD_SSD_SendCommand(uint8_t reg);
 void EPD_SSD_SendData(uint8_t data);
@@ -76,8 +82,15 @@ bool EPD_SSD_IsBusy();
 void EPD_SSD_WaitBusy(uint32_t ms);
 uint8_t EPD_BATT_Percent();
 
+// RTC
+void RTC_SetCollaborate( int8_t rtc_collab );
+int8_t RTC_GetCollaborate();
+
+// API for EPD commands
+void EPD_Command(const uint8_t *cmd, int cmd_len);
+
 // for epd_inch.c shoule implement,
 void EPD_SSD_Init();
-void EPD_SSD_Upate();
+int EPD_SSD_Upate();
 
 #endif 

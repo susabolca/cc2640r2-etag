@@ -13,6 +13,7 @@
 
 #include "epd_driver.h" // epd_battery, epd_temperature
 #include "epd_service.h"
+#include "task_epd.h"   // EPDTask_Update
 
 // EPD_Service Service UUID
 CONST uint8 EpdServiceUUID[ATT_BT_UUID_SIZE] = {
@@ -56,23 +57,23 @@ static uint8 EpochVal[4] = {0};
 
 //static uint8 UtcOffDesc[] = "UTC Offset Mins";
 static uint8 UtcOffProps = GATT_PROP_READ | GATT_PROP_WRITE;
-static int8  UtcOffVal[4] = {0};
+//static int8  UtcOffVal[4] = {0};
 
 //static uint8 BattDesc[] = "Battery mv";
 static uint8 BattProps = GATT_PROP_READ;
-static uint8 BattVal[2] = {0};
+//static uint8 BattVal[2] = {0};
 
 //static uint8 TempDesc[] = "Temperature";
 static uint8 TempProps = GATT_PROP_READ;
-static int8  TempVal[1] = {0};
+//static int8  TempVal[1] = {0};
 
 // RTC Collaboration
 static uint8 RtcCollabProps = GATT_PROP_READ | GATT_PROP_WRITE;
-static int8 RtcCollabVal[1] = {0};
+//static int8 RtcCollabVal[1] = {0};
 
 // RxTx service
 static uint8 RxTxProps = GATT_PROP_READ | GATT_PROP_WRITE;
-static uint8 RxTxBuf[64];
+//static uint8 RxTxBuf[64];
 
 static gattAttribute_t EpdServiceAttrTbl[] =
 {
@@ -96,7 +97,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             { ATT_BT_UUID_SIZE, EpdEpochUUID },
             GATT_PERMIT_READ | GATT_PERMIT_WRITE,
             0,
-            EpochVal
+            NULL
         },
 
     // Characteristic Declaration
@@ -111,7 +112,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             { ATT_BT_UUID_SIZE, EpdUtcOffsetUUID },
             GATT_PERMIT_READ | GATT_PERMIT_WRITE,
             0,
-            UtcOffVal 
+            NULL
         },
 
     // Characteristic Declaration
@@ -126,7 +127,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             { ATT_BT_UUID_SIZE, EpdBattUUID },
             GATT_PERMIT_READ,
             0,
-            BattVal 
+            NULL
         },
 
     // Characteristic Declaration
@@ -141,7 +142,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             { ATT_BT_UUID_SIZE, EpdTempUUID },
             GATT_PERMIT_READ,
             0,
-            TempVal 
+            NULL
         },
 
     // Characteristic Declaration
@@ -156,7 +157,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             { ATT_BT_UUID_SIZE, EpdRtcCollabUUID },
             GATT_PERMIT_READ | GATT_PERMIT_WRITE,
             0,
-            RtcCollabVal 
+            NULL 
         },
 
     // Characteristic Declaration
@@ -171,7 +172,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             { ATT_BT_UUID_SIZE, EpdRxTxUUID },
             GATT_PERMIT_READ | GATT_PERMIT_WRITE,
             0,
-            RxTxBuf 
+            NULL
         },
 };
 
@@ -329,7 +330,7 @@ static bStatus_t EPDService_ReadAttrCB(uint16_t connHandle,
         }
 
         case EPD_RTC_COLLAB_UUID: {
-            int8_t v = RtcCollabVal[0];
+            int8_t v = RTC_GetCollaborate();
             *pLen = sizeof(v);
             memcpy(pValue, &v, *pLen);
             break;   
@@ -368,6 +369,10 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
             if (len == 4) {
                 uint32_t t = *(uint32_t*)pValue;
                 Seconds_set(t);
+
+                // notify EPD to refresh
+                clock_last = 0;
+                EPDTask_Update();
             }
             break;
         }
@@ -385,8 +390,7 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
         case EPD_RTC_COLLAB_UUID: {
             if (len == 1) {
                 int8_t v = *(int8_t*)pValue;
-                RTC_Collaborate(v);
-                RtcCollabVal[0] = v;
+                RTC_SetCollaborate(v);
             }
             break;
         }

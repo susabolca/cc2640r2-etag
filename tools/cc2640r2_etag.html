@@ -1,7 +1,15 @@
 <html lang="zh-CN">
+<head>
+<style>
+  div {
+    padding: 12px;
+    margin: 2 auto;
+  }
+</style>  
+</head>
+
 
 <body>
-
   <script>
     let bleDevice;
     let gattServer;
@@ -116,36 +124,75 @@
     }
 
     async function doCmd(cmd, data) {
+      const epdCmd = {
+        EPD_CMD_CLR: 1,
+        EPD_CMD_MODE: 2,
+        EPD_CMD_BUF: 3,
+        EPD_CMD_BUF_CONT: 4,
+        EPD_CMD_LUT: 5,
+        EPD_CMD_RST: 6,
+        EPD_CMD_BW: 7,
+        EPD_CMD_RED: 8,
+        EPD_CMD_DP: 9,
+      };
+
       var chr = await epdService.getCharacteristic(0xfffe);
-      if (cmd == 'clr') {
-        await chr.writeValueWithResponse(Uint8Array.from([0x01]));
-        info(`> clear`);
-      } else if (cmd == 'mode') {
-        await chr.writeValueWithResponse(Uint8Array.from([0x02, 0x01]));
-        info(`> mode 1`);
-      } else if (cmd == 'buf') {
-        for (var i = 0; i < data.length; i += 60) {
-          let arr = [(i == 0 ? 0x03 : 0x04)];
-          arr.push(...data.slice(i, i + 60));
-          //console.log(arr);
+      switch (cmd) {
+        case 'clr':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_CLR]));
+          break;
+
+        case 'mode':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_MODE, data == 'image'?0x01:0x00]));
+          break;
+
+        case 'buf':
+          for (var i = 0; i < data.length; i += 60) {
+            let arr = [(i == 0 ? epdCmd.EPD_CMD_BUF : epdCmd.EPD_CMD_BUF_CONT)];
+            arr.push(...data.slice(i, i + 60));
+            //console.log(arr);
+            await chr.writeValueWithResponse(Uint8Array.from(arr));
+            //info(`> buf at ${i} size ${arr.length}`)
+          }
+          break;
+
+        case 'lut':
+          let arr = [epdCmd.EPD_CMD_LUT];
+          arr.push(...data);
           await chr.writeValueWithResponse(Uint8Array.from(arr));
-          //info(`> buf at ${i} size ${arr.length}`)
-        }
-        info('> buf done.')
-      } else if (cmd == 'bw') {
-        // write to bw ram
-        await chr.writeValueWithResponse(Uint8Array.from([0x05]));
-        info(`> bw`);
-      } else if (cmd == 'red') {
-        // write to bw ram
-        await chr.writeValueWithResponse(Uint8Array.from([0x06]));
-        info(`> red`);
- 
-      } else if (cmd == 'dp') {
-        // show
-        await chr.writeValueWithResponse(Uint8Array.from([0x07]));
-        info(`> dp`);
+          break;
+
+        case 'rst':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_RST]));
+          break;
+
+        case 'bw':
+          // write to bw ram
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BW]));
+          break;
+
+        case 'red':
+          // write to bw ram
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_RED]));
+          break;
+
+        case 'dp':
+          // show
+          let lut = 0;
+          switch (data) {
+            case 'gray8': 
+              lut = 1;
+              break;
+            case 'user': 
+              lut = 0xff;
+              break;
+            case 'full': 
+            default:
+              lut = 0; 
+          }
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_DP, lut]));
       }
+      info (`> epdCmd.${cmd}`)
     }
 
     let ram_bw = [];
@@ -157,48 +204,55 @@
     }
 
     var step = 0;
-    async function doUploadImage(type) {
+    async function doUploadImageGray8() {
+      await doCmd('clr');
+      await sleep(15*1000);
+
       doImageGrey();
-      for (var i=0; i<8; i++) {
-        await doCmd('mode');
+      for (var i = 0; i < 8; i++) {
+        await doCmd('rst');
         await sleep(2000);
-        await doUploadImage3('bw');
-        await doUploadImage3('red');
-        await doCmd('dp');
+        await doUploadImageRam8('bw');
+        await doUploadImageRam8('red');
+        await doCmd('dp', 'gray8');
         await sleep(8000);
-        step ++;
+        step++;
       }
       step = 0;
       info('> Upload done.')
-   }
-    async function doUploadImage2(type='bw') {
-      //const canvas = document.getElementById('canvas');
-      //var arr = canvas2bytes(canvas, type=type);
-      var arr = new Uint8Array(296*128/8);
-      arr.fill(type=='bw'?0xff:0x00);
-      for (var i=0; i<128/8; i++) { // y
-        if (parseInt(i/2) > step) break;
-        for (var j=0; j<64; j++) {  // x
-          arr[i*296+j+(type=='bw'?0:64)] = type=='bw'?0x00:0xff; 
-        }
+    }
+    async function doUploadImage(type) {
+      if (type == 'gray8') {
+        await doUploadImageGray8();
+      } else {
+        await doCmd('rst');
+        await sleep(2000);
+        await doUploadImageRam2('bw');
+        await doUploadImageRam2('red');
+        await doCmd('dp', 'full');
+        await sleep(15*1000);
       }
-      await doCmd('buf', arr);
-      await doCmd(type)
-      console.log(`step ${step}`);
     }
 
-    async function doUploadImage3(type='bw') {
-      var ram = type=='bw'?ram_bw:ram_red;
+    async function doUploadImageRam2(type = 'bw') {
+      const canvas = document.getElementById('canvas');
+      var arr = canvas2bytes(canvas, type = type);
+      await doCmd('buf', arr);
+      await doCmd(type)
+    }
+
+    async function doUploadImageRam8(type = 'bw') {
+      var ram = type == 'bw' ? ram_bw : ram_red;
 
       // grey byte to bit
       var arr = [];
       var buffer = [];
-      for (var x=0; x<ram.length; x++) {
+      for (var x = 0; x < ram.length; x++) {
         const n = ram[x] > step ? 1 : 0;
         if (type == 'bw') {
-            buffer.push(n?0:1);
+          buffer.push(n ? 0 : 1);
         } else {
-            buffer.push(n?1:0);
+          buffer.push(n ? 1 : 0);
         }
 
         if (buffer.length == 8) {
@@ -206,7 +260,7 @@
           buffer = [];
         }
       }
-     
+
       info(`> write ram ${type} size ${arr.length}, step ${step}`);
       console.log(arr);
       await doCmd('buf', arr);
@@ -239,14 +293,6 @@
           ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
           //convert_dithering()
         }
-      }
-    }
-
-    function get_position(canvas, x, y) {
-      let rect = canvas.getBoundingClientRect()
-      return {
-        x: x - rect.left * (canvas.width / rect.width),
-        y: y - rect.top * (canvas.height / rect.height)
       }
     }
 
@@ -299,14 +345,14 @@
           for (let a = 0; a < 8; a++) {
             const i = (canvas.width * (y + a) + x) * 4;
             const R = imageData.data[i];
-            const G = imageData.data[i+1];
-            const B = imageData.data[i+2];
-            
+            const G = imageData.data[i + 1];
+            const B = imageData.data[i + 2];
+
             let grey = 0;  // white
             if (R == 255 && G != 255 && B != 255) { // red
-              grey = (type == 'bw') ? 0 : (510+62-G-B)>>6;
+              grey = (type == 'bw') ? 0 : (510 + 62 - G - B) >> 6;
             } else { // gray
-              grey = (type == 'bw') ? (255+31-R)>>5 : 0;
+              grey = (type == 'bw') ? (255 + 31 - R) >> 5 : 0;
             }
             arr.push(grey);
           }
@@ -315,39 +361,55 @@
       return arr;
     }
 
+    async function doMyLut() {
+      const O = 0b00000000;   // VSS
+      const B = 0b01000000;   // VSH1 for Black
+      const W = 0b10000000;   // VSL  for white
+      const R = 0b11000000;   // VSH2 for Red
+      const lut_gray8 = [
+        //  RP         A         B         C         D  SRAB  SRCD
+        0x00,     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,       // LUTC
+        0x01, R | 0x20, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTR
+        0x00,     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,       // LUTW
+        0x01, B | 0x03, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTB
+      ];
+      await doCmd('lut', lut_gray8);
+    }
   </script>
 
-  <p>
+  <div>
     <label> Choose </label>
     <button id="btnConnect" type="button" onclick="doConnect()">Connect</button>
-  </p>
-  <p id="etagFn" style="visibility:hidden;">
+  </div>
+  <div id="etagFn" style="visibility:hidden;">
     <button id="btnReadEtag" type="button" onclick="doReadEtag()">ReadEtag</button>
     <button id="btnSetTime" type="button" onclick="doSetTime()">SetTime</button>
     <button id="btnRtcCollab" type="button" onclick="doRtcCollab()">RtcCollab</button>
     <button id="btnTest" type="button" onclick="doTest()">Test</button>
-  </p>
-  <p>
-    <button type="button" onclick="doCmd('clr')">CLR</button>
-    <button type="button" onclick="doCmd('mode')">MODE</button>
-    <button type="button" onclick="doCmd('bw')">BW</button>
-    <button type="button" onclick="doCmd('red')">RED</button>
-    <button type="button" onclick="doCmd('dp')">DP</button>
-  </p>
+  </div>
+  <div>
+    <button type="button" onclick="doCmd('mode', 'clock')">时钟模式</button>
+    <button type="button" onclick="doCmd('mode', 'image')">图片模式</button>
+    <button type="button" onclick="doCmd('clr')">清屏</button>
+    <button type="button" onclick="doCmd('rst')">rst</button>
+    <button type="button" onclick="doCmd('bw')">bw</button>
+    <button type="button" onclick="doCmd('red')">red</button>
+    <button type="button" onclick="doCmd('dp', 'full')">dp</button>
+    <button type="button" onclick="doMyLut()">上传LUT</button>
+  </div>
   <div id="canvas-box">
     <input type="file" id="image_file" onchange="load_image()" accept=".png,.jpg,.bmp,.webp,.gif">
     <br>
     <canvas id="canvas" width="296" height="128" style="border: black solid 1px;"></canvas>
     <br>
-    <button onclick="doUploadImage('bw')">Upload</button>
+    <button onclick="doUploadImage('gray8')">8级灰度</button>
+    <button onclick="doUploadImage('full')">默认刷新</button>
     <br>
   </div>
 
-  <p>
   <div id="log">
     CC2640R2-ETAG Webtool. <br>
   </div>
-  </p>
 </body>
 
 </html>

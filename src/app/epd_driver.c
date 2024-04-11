@@ -8,6 +8,7 @@
 #include <driverlib/cpu.h>  // CPUDelay
 
 #include "epd_driver.h"
+#include "task_epd.h"
 
 // gpio setting
 static PIN_Handle GPIOHandle = NULL;
@@ -29,17 +30,27 @@ uint8_t epd_buffer[EPD_BUF_MAX];
 // debug only
 int lut_size; 
 
+// local time to UTC time offset, in minuts.
+int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
+
 // battery voltage, in frac <3.8>
 uint16_t epd_battery;
 
 // in degree celcius, read from EPD.
 int8_t epd_temperature;
 
-// local time to UTC time offset, in minuts.
-int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
-
-// display mode
+// display mode (default is clock)
 uint8_t epd_mode = EPD_MODE_CLOCK;
+
+// rtc collaboration
+int8_t epd_rtc_collab = 0;
+
+// EPD BLE step
+uint8_t epd_step = EPD_CMD_NC;
+uint8_t epd_step_data[EPD_STEP_DATA_LEN];   // store parameters 
+
+// the clock refesh on change
+uint8_t clock_last = 0;
 
 /*
  * Device APIs
@@ -229,6 +240,39 @@ uint8_t EPD_BATT_Percent(void)
     return 0;
 }
 
+/* RTC minor adjustment support.
+ */
+#if 1
+#include <driverlib/aon_wuc.h>
+#include <driverlib/../inc/hw_aux_wuc.h>
+
+// collaborate rtc tick, slow down(<0), speed up(>0)
+void RTC_SetCollaborate( int8_t rtc_collab )
+{
+    uint32_t subSecInc = (0x8000 + (int)rtc_collab) << 8;
+    // Loading a new RTCSUBSECINC value is done in 5 steps:
+    // 1. Write bit[15:0] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC0
+    // 2. Write bit[23:16] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC1
+    // 3. Set AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
+    // 4. Wait for AUX_WUC_RTCSUBSECINCCTL_UPD_ACK
+    // 5. Clear AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC0 ) = (( subSecInc       ) & 0xFFFF );
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC1 ) = (( subSecInc >> 16 ) & 0xFF );
+
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 1;
+    while( ! ( HWREGBITW( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL, AUX_WUC_RTCSUBSECINCCTL_UPD_ACK_BITN )));
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 0;
+
+    // save
+    epd_rtc_collab = rtc_collab;
+}
+
+int8_t RTC_GetCollaborate( void ) 
+{
+    return epd_rtc_collab;
+}
+#endif
+
 // Select a EPD
 #if defined(EPD_2IN13_SSD1680)
 
@@ -244,32 +288,7 @@ uint8_t EPD_BATT_Percent(void)
 
 #endif
 
-#if 1
-#include <driverlib/aon_wuc.h>
-#include <driverlib/../inc/hw_aux_wuc.h>
-
-// collaborate rtc tick, slow down(<0), speed up(>0)
-void RTC_Collaborate( int rtc_collab )
-{
-   uint32_t subSecInc = (0x8000 + rtc_collab) << 8;
-   // Loading a new RTCSUBSECINC value is done in 5 steps:
-   // 1. Write bit[15:0] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC0
-   // 2. Write bit[23:16] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC1
-   // 3. Set AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
-   // 4. Wait for AUX_WUC_RTCSUBSECINCCTL_UPD_ACK
-   // 5. Clear AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC0 ) = (( subSecInc       ) & 0xFFFF );
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC1 ) = (( subSecInc >> 16 ) & 0xFF );
-
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 1;
-   while( ! ( HWREGBITW( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL, AUX_WUC_RTCSUBSECINCCTL_UPD_ACK_BITN )));
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 0;
-}
-
-#endif
-
 // do command from BLE
-uint8_t epd_step = 0;
 void EPD_Command(const uint8_t *cmd, int cmd_len)
 {
     // buffer recv position (max 64k)
@@ -279,15 +298,15 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
     switch (cmd[0]) {
         // clear screen 
         case EPD_CMD_CLR:
-            epd_step = 0;
-            epd_mode = 0;
+            need_update = 1;
             break;
 
-        // change display mode
+        // display mode change
         case EPD_CMD_MODE:
-            epd_mode = cmd[1];
-            if (epd_mode == EPD_MODE_IMG) {
-                epd_step = 1;
+            if (epd_mode != cmd[1]) {
+                clock_last = 0;     // stop clock
+                epd_mode = cmd[1];
+                need_update = 1;
             }
             break;
 
@@ -303,28 +322,50 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
             break;
         }
 
+        // recv LUT
+        case EPD_CMD_LUT:
+            memcpy(lut_lite_ble, &cmd[1], sizeof(lut_lite_ble));
+            break;
+
+        // EPD Reset
+        case EPD_CMD_RST:
+            need_update = 1;
+            break;
+
+        // write BW ram
         case EPD_CMD_BW:
-            epd_step = 2;
             need_update = 1;
             break;
 
+        // write RED ram
         case EPD_CMD_RED:
-            epd_step = 3;
             need_update = 1;
             break;
 
+        // Display
         case EPD_CMD_DP:
-            epd_step = 4;
+            epd_step_data[0] = cmd[1];
             need_update = 1;
             break;
 
         default:
+            // ignore the command.
             return;
     }
 
+    // save step
+    epd_step = cmd[0];
+
+    // notifiy EPDTask if needs
     if (need_update) {
         EPDTask_Update();
     }
+}
+
+// get EPD state
+int EPD_State(uint8_t *buf, uint8_t size)
+{
+    return 0; 
 }
 
 // should be only called once!
@@ -335,20 +376,14 @@ void EPD_Init()
     // test LUT size
     //lut_size = EPD_LUT_Detect();
 
-    // if the rtc ahead 10 seconds per day (24 hours)
-    // ICALL still using 0x8000 (32768 ticks) for 1 seconds, 
-    // (0x8000 + x) / 0x8000 = (24 * 3600) / (24 * 3600 - 10)
-    // 32768 * 10 / (24 * 3600) = 3.793
-    //RTC_Collaborate(-3);
-
     EPD_SSD_Init();
 }
 
-void EPD_Update()
+int EPD_Update()
 {
     // update battery level
     epd_battery = AONBatMonBatteryVoltageGet(); 
 
     // update Display
-    EPD_SSD_Update();
+    return EPD_SSD_Update();
 }
