@@ -30,7 +30,7 @@
 #include "task_ble.h"
 
 // Advertising interval when device is discoverable (units of 625us, 160=100ms)
-#define DEFAULT_ADVERTISING_INTERVAL          160
+#define DEFAULT_ADVERTISING_INTERVAL          1600
 
 // General discoverable mode: advertise indefinitely
 #define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL
@@ -160,18 +160,12 @@ static uint8_t advertData[] =
     GAP_ADTYPE_16BIT_MORE,      // some of the UUID's, but not all
     LO_UINT16(EPD_SERVICE_SERV_UUID),
     HI_UINT16(EPD_SERVICE_SERV_UUID)
-
 #else
     16, 0x16, // spec 
     LO_UINT16(EPD_SERVICE_SERV_UUID), HI_UINT16(EPD_SERVICE_SERV_UUID),
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // mac address
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06,   // data
     0x07,
-
-    0x03,   // length of this data
-    GAP_ADTYPE_16BIT_MORE,      // some of the UUID's, but not all
-    LO_UINT16(EPD_SERVICE_SERV_UUID),
-    HI_UINT16(EPD_SERVICE_SERV_UUID)
 #endif
 };
 
