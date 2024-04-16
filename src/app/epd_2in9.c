@@ -204,7 +204,7 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
     EPD_SSD_SendData(lut[31]);    // VSH
     EPD_SSD_SendData(lut[32]);    // VSH2
     EPD_SSD_SendData(lut[33]);    // VSL
-
+    
     // 232, VCOM
     EPD_SSD_SendCommand(0x2C);
     EPD_SSD_SendData(lut[34]);
