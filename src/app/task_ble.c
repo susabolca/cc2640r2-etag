@@ -37,11 +37,11 @@
 
 // Minimum connection interval (units of 1.25ms, 80=100ms) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     160
 
 // Maximum connection interval (units of 1.25ms, 800=1000ms) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
+#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     4000
 
 // Slave latency to use for automatic parameter update request
 #define DEFAULT_DESIRED_SLAVE_LATENCY         0
