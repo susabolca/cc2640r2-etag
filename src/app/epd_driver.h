@@ -53,6 +53,7 @@ enum EPD_CMD {
     EPD_CMD_BW,         // write EPD Black/White
     EPD_CMD_RED,        // write EPD Red
     EPD_CMD_DP,         // EPD display
+    EPD_CMD_FILL,       // fill ram with color 
 
     EPD_CMD_MAX
 };

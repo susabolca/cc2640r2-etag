@@ -129,6 +129,14 @@ static const uint8_t lut_lite_fast_bw[] = {
     0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0x0,            // LUTR 
     0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x1,    0x0,            // LUTW
     0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
+
+//  FR 
+    0x04, // 2: 50hz, 3: 75Hz, 4: 100Hz, 5: 125Hz
+
+//  EOPT    VGH     VSH1    VSH2    VSL     VCOM
+//  3F      03      04                      2C
+//  22      -20v    15v     3v      -15v
+    0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
 
 // LUT for BLE Gray display (4 steps)
@@ -138,10 +146,20 @@ static const uint8_t lut_lite_gray8_bwr[] = {
     0x1,    VSH2|0x3f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTR 
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTW
     0x1,    VSH1|0x03,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
+
+//  FR 
+    0x04, // 2: 50hz, 3: 75Hz, 4: 100Hz, 5: 125Hz
+
+//  EOPT    VGH     VSH1    VSH2    VSL     VCOM
+//  3F      03      04                      2C
+//  22      -20v    15v     3.0v      -15v
+    0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
 
 // LUT for BLE user defined.
-static uint8_t lut_lite_ble[7*4] = {0};
+static uint8_t lut_lite_ble[7*5] = {0};
+
+
 
 static void EPD_2IN9_Lut(const unsigned char *lut)
 {
@@ -163,7 +181,7 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
     
     // 224, FR
     // 2: 50hz, 3: 75Hz, 4: 100Hz, 5: 125Hz
-    EPD_SSD_SendData(0x04);
+    EPD_SSD_SendData(lut[28]);
 
     // 225, XON
     EPD_SSD_SendData(0x00);
@@ -176,20 +194,20 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
         
     // 227, gate voltage
     EPD_SSD_SendCommand(0x3F);
-    EPD_SSD_SendData(0x22);
+    EPD_SSD_SendData(lut[29]);
 
     EPD_SSD_SendCommand(0x03);
-    EPD_SSD_SendData(0x17);
+    EPD_SSD_SendData(lut[30]);
 
     // 229, source voltage
     EPD_SSD_SendCommand(0x04);
-    EPD_SSD_SendData(0x41);    // VSH
-    EPD_SSD_SendData(0x95);    // VSH2
-    EPD_SSD_SendData(0x32);    // VSL
+    EPD_SSD_SendData(lut[31]);    // VSH
+    EPD_SSD_SendData(lut[32]);    // VSH2
+    EPD_SSD_SendData(lut[33]);    // VSL
 
     // 232, VCOM
     EPD_SSD_SendCommand(0x2C);
-    EPD_SSD_SendData(0x36);
+    EPD_SSD_SendData(lut[34]);
 }
 
 static void EPD_2IN9_SoftReset()
@@ -447,6 +465,17 @@ void EPD_2IN9_Update_Image()
 
         case EPD_CMD_RED: // write Red ram
             EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+            break;
+
+        case EPD_CMD_FILL: // write ram with color
+            uint8_t color = epd_step_data[0];
+            if (color == 1) {   // red
+                memset(epd_buffer, 0xff, EPD_WIDTH*EPD_HEIGHT/8);
+                EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+            } else {
+                memset(epd_buffer, 0, EPD_WIDTH*EPD_HEIGHT/8);
+                EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+            }
             break;
 
         case EPD_CMD_DP: { // master

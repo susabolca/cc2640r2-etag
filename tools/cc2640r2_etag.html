@@ -134,6 +134,7 @@
         EPD_CMD_BW: 7,
         EPD_CMD_RED: 8,
         EPD_CMD_DP: 9,
+        EPD_CMD_FILL: 10,
       };
 
       var chr = await epdService.getCharacteristic(0xfffe);
@@ -174,6 +175,11 @@
         case 'red':
           // write to bw ram
           await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_RED]));
+          break;
+
+        case 'fill':
+          // fill ram with black(0) or red(1)
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_FILL, data == 'red' ? 0x01:0x00]));
           break;
 
         case 'dp':
@@ -372,8 +378,17 @@
         0x01, R | 0x20, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTR
         0x00,     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,       // LUTW
         0x01, B | 0x03, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTB
+        0x01, B | 0x03, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTB
       ];
       await doCmd('lut', lut_gray8);
+    }
+
+    async function doFill(color) {
+        await doCmd('rst');
+        await sleep(2000);
+        await doCmd('fill', color);
+        await doCmd('dp', 'full');
+        await sleep(15*1000);
     }
   </script>
 
@@ -382,20 +397,24 @@
     <button id="btnConnect" type="button" onclick="doConnect()">Connect</button>
   </div>
   <div id="etagFn" style="visibility:hidden;">
+    <button type="button" onclick="doCmd('mode', 'clock')">时钟模式</button>
     <button id="btnReadEtag" type="button" onclick="doReadEtag()">ReadEtag</button>
     <button id="btnSetTime" type="button" onclick="doSetTime()">SetTime</button>
     <button id="btnRtcCollab" type="button" onclick="doRtcCollab()">RtcCollab</button>
     <button id="btnTest" type="button" onclick="doTest()">Test</button>
   </div>
   <div>
-    <button type="button" onclick="doCmd('mode', 'clock')">时钟模式</button>
     <button type="button" onclick="doCmd('mode', 'image')">图片模式</button>
-    <button type="button" onclick="doCmd('clr')">清屏</button>
     <button type="button" onclick="doCmd('rst')">rst</button>
     <button type="button" onclick="doCmd('bw')">bw</button>
     <button type="button" onclick="doCmd('red')">red</button>
     <button type="button" onclick="doCmd('dp', 'full')">dp</button>
-    <button type="button" onclick="doMyLut()">上传LUT</button>
+    <button type="button" onclick="doMyLut()">LUT</button>
+  </div>
+  <div>
+    <button type="button" onclick="doCmd('clr')">清屏</button>
+    <button type="button" onclick="doFill('black')">全黑</button>
+    <button type="button" onclick="doFill('red')">全红</button>
   </div>
   <div id="canvas-box">
     <input type="file" id="image_file" onchange="load_image()" accept=".png,.jpg,.bmp,.webp,.gif">

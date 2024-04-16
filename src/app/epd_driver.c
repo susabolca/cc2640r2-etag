@@ -348,6 +348,12 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
             need_update = 1;
             break;
 
+        // fill ram with color
+        case EPD_CMD_FILL:
+            epd_step_data[0] = cmd[1];
+            need_update = 1;
+            break;
+
         default:
             // ignore the command.
             return;
