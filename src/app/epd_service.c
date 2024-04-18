@@ -53,7 +53,7 @@ static CONST gattAttrType_t EpdServiceDecl = { ATT_BT_UUID_SIZE, EpdServiceUUID 
 
 //static uint8 EpochDesc[] = "Unix Epoch";
 static uint8 EpochProps = GATT_PROP_READ | GATT_PROP_WRITE;
-static uint8 EpochVal[4] = {0};
+static uint32 EpochLastVal = 0; // last value of Unix Epoch
 
 //static uint8 UtcOffDesc[] = "UTC Offset Mins";
 static uint8 UtcOffProps = GATT_PROP_READ | GATT_PROP_WRITE;
@@ -97,7 +97,7 @@ static gattAttribute_t EpdServiceAttrTbl[] =
             { ATT_BT_UUID_SIZE, EpdEpochUUID },
             GATT_PERMIT_READ | GATT_PERMIT_WRITE,
             0,
-            NULL
+            NULL 
         },
 
     // Characteristic Declaration
@@ -337,8 +337,13 @@ static bStatus_t EPDService_ReadAttrCB(uint16_t connHandle,
         }
 
         case EPD_RXTX_UUID: {
-            *pLen = MIN(64, maxLen);
-            memcpy(pValue, epd_buffer, *pLen);
+            // send ble_data to BLE.
+            uint8_t idx = ble_data_cur;
+            uint8_t len = MIN(ble_data_len - idx, maxLen - 1);
+            // index, data ...
+            pValue[0] = idx;
+            memcpy(&pValue[1], &ble_data[idx], len);
+            *pLen = len + 1;
             break;
         }
 
@@ -369,6 +374,7 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
             if (len == 4) {
                 uint32_t t = *(uint32_t*)pValue;
                 Seconds_set(t);
+                EpochLastVal = t;
 
                 // notify EPD to refresh
                 clock_last = 0;
@@ -397,7 +403,6 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
 
         case EPD_RXTX_UUID: {
             if (len < 64) {
-                //memcpy(RxTxBuf, pValue, len);
                 EPD_Command(pValue, len);
             }
             break;

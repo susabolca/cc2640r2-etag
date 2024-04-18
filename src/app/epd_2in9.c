@@ -122,8 +122,14 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
 }
 #endif
 
+/* LUT lite is small than LUT used in SSD1680A, only 35 bytes.
+ * lut_lite_fast_bw is default lut for clock display,
+ * lut_lite_gray8_bwr is default lut for BLE display.
+ */
+#define LUT_LITE_LEN    35
+
 // LUT for clock fast display. (only black/white)
-static const uint8_t lut_lite_fast_bw[] = {
+static const uint8_t lut_lite_fast_bw[LUT_LITE_LEN] = {
 //  RP      A           B           C           D           SRAB    SRCD
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTC
     0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0x0,            // LUTR 
@@ -139,8 +145,8 @@ static const uint8_t lut_lite_fast_bw[] = {
     0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
 
-// LUT for BLE Gray display (4 steps)
-static const uint8_t lut_lite_gray8_bwr[] = {
+// LUT for BLE Gray display (8 steps)
+static const uint8_t lut_lite_gray8_bwr[LUT_LITE_LEN] = {
 //  RP      A           B           C           D           SRAB    SRCD
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTC
     0x1,    VSH2|0x3f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTR 
@@ -155,11 +161,6 @@ static const uint8_t lut_lite_gray8_bwr[] = {
 //  22      -20v    15v     3.0v      -15v
     0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
-
-// LUT for BLE user defined.
-static uint8_t lut_lite_ble[7*5] = {0};
-
-
 
 static void EPD_2IN9_Lut(const unsigned char *lut)
 {
@@ -484,7 +485,7 @@ void EPD_2IN9_Update_Image()
             if (dpm == 1) { // gray8 lut
                 EPD_2IN9_Lut(lut_lite_gray8_bwr);
             } else if (dpm == 0xff) {   // user ble lut
-                EPD_2IN9_Lut(lut_lite_ble);
+                EPD_2IN9_Lut(ble_data);
             }
             #endif
             EPD_2IN9_Display(dpm ? 0xc7: 0xf7);    // fast display

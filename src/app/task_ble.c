@@ -35,18 +35,19 @@
 // General discoverable mode: advertise indefinitely
 #define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL
 
-// Minimum connection interval (units of 1.25ms, 80=100ms) for automatic
+// Minimum connection interval (units of 1.25ms, 80=100ms, min=6) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     160
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     8
 
-// Maximum connection interval (units of 1.25ms, 800=1000ms) for automatic
+// Maximum connection interval (units of 1.25ms, 800=1000ms, max=3200) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     4000
+#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
 
 // Slave latency to use for automatic parameter update request
-#define DEFAULT_DESIRED_SLAVE_LATENCY         0
+#define DEFAULT_DESIRED_SLAVE_LATENCY         3
 
-// Supervision timeout value (units of 10ms, 1000=10s) for automatic parameter
+// MEETS : CONN_TIMEOUT > (1 + SLAVE_LATENCY) * CONN_INTERVAL
+// Supervision timeout value (units of 10ms, 1000=10s, 10-3200) for automatic parameter
 // update request
 #define DEFAULT_DESIRED_CONN_TIMEOUT          1000
 
@@ -55,7 +56,7 @@
 #define DEFAULT_ENABLE_UPDATE_REQUEST         GAPROLE_LINK_PARAM_UPDATE_WAIT_REMOTE_PARAMS
 
 // Connection Pause Peripheral time value (in seconds)
-#define DEFAULT_CONN_PAUSE_PERIPHERAL         6
+#define DEFAULT_CONN_PAUSE_PERIPHERAL         5
 
 // How often to perform periodic event (in msec)
 //#define SBP_PERIODIC_EVT_PERIOD               5000
@@ -78,11 +79,13 @@
 // Internal Events for RTOS application
 #define SBP_ICALL_EVT                         ICALL_MSG_EVENT_ID  // Event_Id_31
 #define SBP_QUEUE_EVT                         UTIL_QUEUE_EVENT_ID // Event_Id_30
+#define SBP_RXTX_QUEUE_EVT                    Event_Id_01
 //#define SBP_PERIODIC_EVT                      Event_Id_00
 
 // Bitwise OR of all events to pend on
 #define SBP_ALL_EVENTS                        (SBP_ICALL_EVT    | \
-                                               SBP_QUEUE_EVT)
+                                               SBP_QUEUE_EVT    | \
+                                               SBP_RXTX_QUEUE_EVT)
 
 // Row numbers for two-button menu
 #define SBP_ROW_RESULT        TBM_ROW_APP
@@ -525,6 +528,11 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
                 if (pMsg && safeToDealloc) {
                     ICall_freeMsg(pMsg);
                 }
+            }
+
+            // RXTX events
+            if (events & SBP_RXTX_QUEUE_EVT) {
+
             }
 
             // If RTOS queue is not empty, process app message.

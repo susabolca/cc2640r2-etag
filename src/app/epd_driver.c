@@ -7,6 +7,9 @@
 #include <ti/sysbios/knl/Task.h>    // Task_sleep
 #include <driverlib/cpu.h>  // CPUDelay
 
+#include <osal.h>
+#include <osal_snv.h>       // osal_snv_write
+
 #include "epd_driver.h"
 #include "task_epd.h"
 
@@ -34,7 +37,7 @@ int lut_size;
 int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
 
 // battery voltage, in frac <3.8>
-uint16_t epd_battery;
+uint16_t epd_battery = -1;
 
 // in degree celcius, read from EPD.
 int8_t epd_temperature;
@@ -51,6 +54,11 @@ uint8_t epd_step_data[EPD_STEP_DATA_LEN];   // store parameters
 
 // the clock refesh on change
 uint8_t clock_last = 0;
+
+// BLE data buffer
+uint8_t ble_data[BLE_DATA_MAX];
+uint8_t ble_data_len = 0;
+uint8_t ble_data_cur = 0;
 
 /*
  * Device APIs
@@ -324,7 +332,9 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
 
         // recv LUT
         case EPD_CMD_LUT:
-            memcpy(lut_lite_ble, &cmd[1], sizeof(lut_lite_ble));
+            // write LUT to ble_data
+            ble_data_len = cmd_len - 1;
+            memcpy(ble_data, &cmd[1], ble_data_len);
             break;
 
         // EPD Reset
@@ -354,6 +364,44 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
             need_update = 1;
             break;
 
+        // put data to buffer 
+        case EPD_CMD_BUF_PUT: {
+            // cmd, idx, data ...
+            uint8_t idx = cmd[1];
+            uint8_t len = MIN(cmd_len - 2, BLE_DATA_MAX - idx);
+            // calculate data length 
+            ble_data_len = idx + len;
+            // save data
+            memcpy(&ble_data[idx], &cmd[2], len);
+            break;
+        }
+        
+        // get data from buffer, data send by ReadAttr
+        case EPD_CMD_BUF_GET: {
+            // cmd, idx
+            ble_data_cur = cmd[1];
+            break;
+        }
+
+        // write ble_data to snv
+        case EPD_CMD_SNV_WRITE: {
+            uint8_t id = cmd[1];
+            if (ble_data_len != 0) {
+                osal_snv_write(id, ble_data_len, ble_data);
+            }
+            break;
+        }
+
+        // read snv to ble_data
+        case EPD_CMD_SNV_READ: {
+            // cmd, id, len
+            uint8_t id = cmd[1];
+            uint8_t len = cmd[2];
+            uint8_t rc = osal_snv_read(id, len, ble_data);
+            ble_data_len = (rc == SUCCESS) ? len : 0;
+            break;
+        }
+
         default:
             // ignore the command.
             return;
@@ -379,8 +427,17 @@ void EPD_Init()
 {
     GPIOHandle = PIN_open(&GPIOState, GPIOTable);      
 
-    // test LUT size
+    // test LUT size, different EPD has different LUT size.
     //lut_size = EPD_LUT_Detect();
+
+#if 0
+    uint8_t buf[16] = {'a', 'b', 'c', 'd', };
+    uint8_t rc = osal_snv_read(0x80, 16, buf);
+    if (rc != SUCCESS) {
+        memcpy(buf, "hello world.", 13);
+        osal_snv_write(0x80, 16, buf);
+    }
+#endif
 
     EPD_SSD_Init();
 }
@@ -388,7 +445,7 @@ void EPD_Init()
 int EPD_Update()
 {
     // update battery level
-    epd_battery = AONBatMonBatteryVoltageGet(); 
+    epd_battery = MIN(epd_battery, AONBatMonBatteryVoltageGet()); 
 
     // update Display
     return EPD_SSD_Update();

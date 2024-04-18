@@ -24,7 +24,7 @@ extern int32_t utc_offset_mins;
 
 // public sensor values
 extern int8_t epd_temperature;          // in degree celsius, +/-127
-extern uint16_t epd_battery;            // in (3.8) frac
+extern uint16_t epd_battery;            // in (3.8) frac, minium value
 
 // display mode 
 extern uint8_t epd_mode;
@@ -38,6 +38,12 @@ extern uint8_t epd_step_data[EPD_STEP_DATA_LEN];
 
 // saved clock tick.
 extern uint8_t clock_last;
+
+// ble data buffer
+#define BLE_DATA_MAX    256
+extern uint8_t ble_data[BLE_DATA_MAX];  // ble data, a 256 bytes buffer
+extern uint8_t ble_data_len;            // indicate the length of ble_data
+extern uint8_t ble_data_cur;            // indicate the current position of ble_data
 
 // EPD service commands
 enum EPD_CMD {
@@ -54,8 +60,23 @@ enum EPD_CMD {
     EPD_CMD_RED,        // write EPD Red
     EPD_CMD_DP,         // EPD display
     EPD_CMD_FILL,       // fill ram with color 
-
+    
+    EPD_CMD_BUF_PUT,    // put data to buffer 
+    EPD_CMD_BUF_GET,    // get data from buffer 
+    EPD_CMD_SNV_WRITE,  // write ble_data to snv 
+    EPD_CMD_SNV_READ,   // read snv to ble_data 
+    
     EPD_CMD_MAX
+};
+
+// CC2640r2 SNV user area, 0x80 - 0x8f
+enum EPD_SNV {
+    EPD_SNV_CFG = 0x80, // configuration
+    EPD_SNV_LUT1,       // LUT1
+    EPD_SNV_LUT2,       // LUT2
+    EPD_SNV_LUT3,       // LUT3
+
+    EPD_SNV_MAX
 };
 
 /*

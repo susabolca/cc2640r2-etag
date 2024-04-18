@@ -135,6 +135,12 @@
         EPD_CMD_RED: 8,
         EPD_CMD_DP: 9,
         EPD_CMD_FILL: 10,
+        
+        EPD_CMD_BUF_PUT: 11,
+        EPD_CMD_BUF_GET: 12,
+        EPD_CMD_SNV_WRITE: 13,
+        EPD_CMD_SNV_READ: 14,
+
       };
 
       var chr = await epdService.getCharacteristic(0xfffe);
@@ -197,6 +203,23 @@
               lut = 0; 
           }
           await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_DP, lut]));
+          break;
+
+        case 'snv_read':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_READ, 0x80, 16]));
+          break;
+ 
+        case 'snv_write':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_WRITE, 0x80]));
+          break;
+        
+        case 'buf_get':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_GET, 0x00]));
+          break;
+        
+        case 'buf_put':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_PUT, 0x00, 0x01, 0x02, 0x03, 0x04]));
+          break;
       }
       info (`> epdCmd.${cmd}`)
     }
@@ -390,6 +413,22 @@
         await doCmd('dp', 'full');
         await sleep(15*1000);
     }
+
+    async function doSnvRead(type) {
+      var chr = await epdService.getCharacteristic(0xfffe);
+        if (type == 'cfg') {
+          await doCmd('snv_read', 0x01);
+          await doCmd('buf_get', 0x00);
+          var a = await chr.readValue();
+          console.log(a);
+        }
+    }
+
+    async function doSnvWrite() {
+      //var chr = await epdService.getCharacteristic(0xfffe);
+      await doCmd('buf_put', 0x00);
+      await doCmd('snv_write', 0x80);
+    }
   </script>
 
   <div>
@@ -426,6 +465,10 @@
     <br>
   </div>
 
+  <div>
+    <button type="button" onclick="doSnvWrite()">写入</button>
+    <button type="button" onclick="doSnvRead('cfg')">读出</button>
+  </div>
   <div id="log">
     CC2640R2-ETAG Webtool. <br>
   </div>
