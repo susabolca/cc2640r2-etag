@@ -45,8 +45,8 @@ int8_t epd_temperature;
 // display mode (default is clock)
 uint8_t epd_mode = EPD_MODE_CLOCK;
 
-// rtc collaboration
-int8_t epd_rtc_collab = 0;
+// rtc collaboration, default -3.
+int8_t epd_rtc_collab = -3;
 
 // EPD BLE step
 uint8_t epd_step = EPD_CMD_NC;
