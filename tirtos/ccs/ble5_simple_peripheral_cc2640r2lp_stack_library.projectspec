@@ -36,7 +36,7 @@
             --cmd_file=${SRC_BLE_DIR}/config/build_components.opt
             --cmd_file=${SRC_BLE_DIR}/config/factory_config.opt
             --cmd_file=${PROJECT_LOC}/TOOLS/build_config.opt
-            -mv7M3 -O4 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
+            -mv7M3 -O2 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
             -D${XDC_SYMBOLS}
             -DCC26XX
             -DCC26XX_R2

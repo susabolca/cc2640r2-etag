@@ -7,7 +7,11 @@
 #include <ti/sysbios/knl/Task.h>    // Task_sleep
 #include <driverlib/cpu.h>  // CPUDelay
 
+#include <osal.h>
+#include <osal_snv.h>       // osal_snv_write
+
 #include "epd_driver.h"
+#include "task_epd.h"
 
 // gpio setting
 static PIN_Handle GPIOHandle = NULL;
@@ -29,14 +33,32 @@ uint8_t epd_buffer[EPD_BUF_MAX];
 // debug only
 int lut_size; 
 
+// local time to UTC time offset, in minuts.
+int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
+
 // battery voltage, in frac <3.8>
-uint16_t epd_battery;
+uint16_t epd_battery = -1;
 
 // in degree celcius, read from EPD.
 int8_t epd_temperature;
 
-// local time to UTC time offset, in minuts.
-int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
+// display mode (default is clock)
+uint8_t epd_mode = EPD_MODE_CLOCK;
+
+// rtc collaboration, default -3.
+int8_t epd_rtc_collab = -3;
+
+// EPD BLE step
+uint8_t epd_step = EPD_CMD_NC;
+uint8_t epd_step_data[EPD_STEP_DATA_LEN];   // store parameters 
+
+// the clock refesh on change
+uint8_t clock_last = 0;
+
+// BLE data buffer
+uint8_t ble_data[BLE_DATA_MAX];
+uint8_t ble_data_len = 0;
+uint8_t ble_data_cur = 0;
 
 /*
  * Device APIs
@@ -226,6 +248,39 @@ uint8_t EPD_BATT_Percent(void)
     return 0;
 }
 
+/* RTC minor adjustment support.
+ */
+#if 1
+#include <driverlib/aon_wuc.h>
+#include <driverlib/../inc/hw_aux_wuc.h>
+
+// collaborate rtc tick, slow down(<0), speed up(>0)
+void RTC_SetCollaborate( int8_t rtc_collab )
+{
+    uint32_t subSecInc = (0x8000 + (int)rtc_collab) << 8;
+    // Loading a new RTCSUBSECINC value is done in 5 steps:
+    // 1. Write bit[15:0] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC0
+    // 2. Write bit[23:16] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC1
+    // 3. Set AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
+    // 4. Wait for AUX_WUC_RTCSUBSECINCCTL_UPD_ACK
+    // 5. Clear AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC0 ) = (( subSecInc       ) & 0xFFFF );
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC1 ) = (( subSecInc >> 16 ) & 0xFF );
+
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 1;
+    while( ! ( HWREGBITW( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL, AUX_WUC_RTCSUBSECINCCTL_UPD_ACK_BITN )));
+    HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 0;
+
+    // save
+    epd_rtc_collab = rtc_collab;
+}
+
+int8_t RTC_GetCollaborate( void ) 
+{
+    return epd_rtc_collab;
+}
+#endif
+
 // Select a EPD
 #if defined(EPD_2IN13_SSD1680)
 
@@ -241,52 +296,203 @@ uint8_t EPD_BATT_Percent(void)
 
 #endif
 
-#if 1
-#include <driverlib/aon_wuc.h>
-#include <driverlib/../inc/hw_aux_wuc.h>
-
-// collaborate rtc tick, slow down(<0), speed up(>0)
-void RTC_Collaborate( int rtc_collab )
+// do command from BLE
+void EPD_Command(const uint8_t *cmd, int cmd_len)
 {
-   uint32_t subSecInc = (0x8000 + rtc_collab) << 8;
-   // Loading a new RTCSUBSECINC value is done in 5 steps:
-   // 1. Write bit[15:0] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC0
-   // 2. Write bit[23:16] of new SUBSECINC value to AUX_WUC_O_RTCSUBSECINC1
-   // 3. Set AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
-   // 4. Wait for AUX_WUC_RTCSUBSECINCCTL_UPD_ACK
-   // 5. Clear AUX_WUC_RTCSUBSECINCCTL_UPD_REQ
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC0 ) = (( subSecInc       ) & 0xFFFF );
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINC1 ) = (( subSecInc >> 16 ) & 0xFF );
+    // buffer recv position (max 64k)
+    static uint16_t buf_cur = 0; 
+    bool need_update = 0;
 
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 1;
-   while( ! ( HWREGBITW( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL, AUX_WUC_RTCSUBSECINCCTL_UPD_ACK_BITN )));
-   HWREG( AUX_WUC_BASE + AUX_WUC_O_RTCSUBSECINCCTL ) = 0;
+    switch (cmd[0]) {
+        // clear screen 
+        case EPD_CMD_CLR:
+            need_update = 1;
+            break;
+
+        // display mode change
+        case EPD_CMD_MODE:
+            if (epd_mode != cmd[1]) {
+                clock_last = 0;     // stop clock
+                epd_mode = cmd[1];
+                need_update = 1;
+            }
+            break;
+
+        // recv epd_buffer
+        case EPD_CMD_BUF:
+            buf_cur = 0;
+            // pass through
+        case EPD_CMD_BUF_CONT: {
+            uint16_t len = cmd_len - 1;
+            len = MIN(len, (EPD_BUF_MAX - buf_cur));
+            memcpy(&epd_buffer[buf_cur], &cmd[1], len);
+            buf_cur += len;
+            break;
+        }
+
+        // recv LUT
+        case EPD_CMD_LUT:
+            // write LUT to ble_data
+            ble_data_len = cmd_len - 1;
+            memcpy(ble_data, &cmd[1], ble_data_len);
+            break;
+
+        // EPD Reset
+        case EPD_CMD_RST:
+            need_update = 1;
+            break;
+
+        // write BW ram
+        case EPD_CMD_BW:
+            need_update = 1;
+            break;
+
+        // write RED ram
+        case EPD_CMD_RED:
+            need_update = 1;
+            break;
+
+        // Display
+        case EPD_CMD_DP:
+            epd_step_data[0] = cmd[1];
+            need_update = 1;
+            break;
+
+        // fill ram with color
+        case EPD_CMD_FILL:
+            epd_step_data[0] = cmd[1];
+            need_update = 1;
+            break;
+
+        // put data to buffer 
+        case EPD_CMD_BUF_PUT: {
+            // cmd, idx, data ...
+            uint8_t idx = cmd[1];
+            uint8_t len = MIN(cmd_len - 2, BLE_DATA_MAX - idx);
+            // calculate data length 
+            ble_data_len = idx + len;
+            // save data
+            memcpy(&ble_data[idx], &cmd[2], len);
+            break;
+        }
+        
+        // get data from buffer, data send by ReadAttr
+        case EPD_CMD_BUF_GET: {
+            // cmd, idx
+            ble_data_cur = cmd[1];
+            break;
+        }
+
+        // write ble_data to snv
+        case EPD_CMD_SNV_WRITE: {
+            uint8_t id = cmd[1];
+            if (ble_data_len != 0) {
+                osal_snv_write(id, ble_data_len, ble_data);
+            }
+            break;
+        }
+
+        // read snv to ble_data
+        case EPD_CMD_SNV_READ: {
+            // cmd, id, len
+            uint8_t id = cmd[1];
+            uint8_t len = cmd[2];
+            uint8_t rc = osal_snv_read(id, len, ble_data);
+            ble_data_len = (rc == SUCCESS) ? len : 0;
+            break;
+        }
+
+        // save configuration to snv
+        case EPD_CMD_SAVE_CFG:
+            EPD_SNV_SaveCfg();
+            break;
+
+        default:
+            // ignore the command.
+            return;
+    }
+
+    // save step
+    epd_step = cmd[0];
+
+    // notifiy EPDTask if needs
+    if (need_update) {
+        EPDTask_Update();
+    }
 }
 
-#endif
+// get EPD state
+int EPD_State(uint8_t *buf, uint8_t size)
+{
+    return 0; 
+}
+
+// load configuration from SNV
+int EPD_SNV_LoadCfg()
+{
+    struct epd_snv_cfg cfg;
+    uint8_t rc = osal_snv_read(EPD_SNV_CFG, sizeof(cfg), &cfg);
+    if (rc == SUCCESS) {
+        epd_mode = cfg.u.cfg.mode;
+        utc_offset_mins = cfg.u.cfg.utc_offset;
+        epd_rtc_collab = cfg.u.cfg.rtc_collab;
+    }
+    return rc;
+}
+
+// save configuration to SNV
+int EPD_SNV_SaveCfg()
+{
+    struct epd_snv_cfg cfg;
+    cfg.u.cfg.mode = epd_mode;
+    cfg.u.cfg.utc_offset = utc_offset_mins;
+    cfg.u.cfg.rtc_collab = epd_rtc_collab;
+    return osal_snv_write(EPD_SNV_CFG, sizeof(cfg), &cfg);
+}
+
+// load lut from SNV
+int EPD_SNV_LoadLut(int index, uint8_t *lut, int len)
+{
+    uint8_t rc;
+    return osal_snv_read(EPD_SNV_LUT1 + index, len, lut);
+}
+
+// save lut to SNV
+int EPD_SNV_SaveLut(int index, const uint8_t *lut, int len)
+{
+    uint8_t rc;
+    return osal_snv_write(EPD_SNV_LUT1 + index, len, (void *)lut);
+}
 
 // should be only called once!
 void EPD_Init()
 {
     GPIOHandle = PIN_open(&GPIOState, GPIOTable);      
 
-    // test LUT size
+    // test LUT size, different EPD has different LUT size.
     //lut_size = EPD_LUT_Detect();
 
-    // if the rtc ahead 10 seconds per day (24 hours)
-    // ICALL still using 0x8000 (32768 ticks) for 1 seconds, 
-    // (0x8000 + x) / 0x8000 = (24 * 3600) / (24 * 3600 - 10)
-    // 32768 * 10 / (24 * 3600) = 3.793
-    //RTC_Collaborate(-3);
+#if 0
+    uint8_t buf[16] = {'a', 'b', 'c', 'd', };
+    uint8_t rc = osal_snv_read(0x80, 16, buf);
+    if (rc != SUCCESS) {
+        memcpy(buf, "hello world.", 13);
+        osal_snv_write(0x80, 16, buf);
+    }
+#endif
 
+    // load from snv
+    EPD_SNV_LoadCfg();
+
+    // init EPD 
     EPD_SSD_Init();
 }
 
-void EPD_Update()
+int EPD_Update()
 {
     // update battery level
-    epd_battery = AONBatMonBatteryVoltageGet(); 
+    epd_battery = MIN(epd_battery, AONBatMonBatteryVoltageGet()); 
 
     // update Display
-    EPD_SSD_Update();
+    return EPD_SSD_Update();
 }

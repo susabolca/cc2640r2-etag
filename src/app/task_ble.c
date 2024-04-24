@@ -30,23 +30,24 @@
 #include "task_ble.h"
 
 // Advertising interval when device is discoverable (units of 625us, 160=100ms)
-#define DEFAULT_ADVERTISING_INTERVAL          160
+#define DEFAULT_ADVERTISING_INTERVAL          1600
 
 // General discoverable mode: advertise indefinitely
 #define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL
 
-// Minimum connection interval (units of 1.25ms, 80=100ms) for automatic
+// Minimum connection interval (units of 1.25ms, 80=100ms, min=6) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     16 
 
-// Maximum connection interval (units of 1.25ms, 800=1000ms) for automatic
+// Maximum connection interval (units of 1.25ms, 800=1000ms, max=3200) for automatic
 // parameter update request
 #define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
 
 // Slave latency to use for automatic parameter update request
-#define DEFAULT_DESIRED_SLAVE_LATENCY         0
+#define DEFAULT_DESIRED_SLAVE_LATENCY         3
 
-// Supervision timeout value (units of 10ms, 1000=10s) for automatic parameter
+// MEETS : CONN_TIMEOUT > (1 + SLAVE_LATENCY) * CONN_INTERVAL
+// Supervision timeout value (units of 10ms, 1000=10s, 10-3200) for automatic parameter
 // update request
 #define DEFAULT_DESIRED_CONN_TIMEOUT          1000
 
@@ -55,10 +56,10 @@
 #define DEFAULT_ENABLE_UPDATE_REQUEST         GAPROLE_LINK_PARAM_UPDATE_WAIT_REMOTE_PARAMS
 
 // Connection Pause Peripheral time value (in seconds)
-#define DEFAULT_CONN_PAUSE_PERIPHERAL         6
+#define DEFAULT_CONN_PAUSE_PERIPHERAL         5
 
 // How often to perform periodic event (in msec)
-#define SBP_PERIODIC_EVT_PERIOD               5000
+//#define SBP_PERIODIC_EVT_PERIOD               5000
 
 // Application specific event ID for HCI Connection Event End Events
 #define SBP_HCI_CONN_EVT_END_EVT              0x0001
@@ -78,11 +79,13 @@
 // Internal Events for RTOS application
 #define SBP_ICALL_EVT                         ICALL_MSG_EVENT_ID  // Event_Id_31
 #define SBP_QUEUE_EVT                         UTIL_QUEUE_EVENT_ID // Event_Id_30
+#define SBP_RXTX_QUEUE_EVT                    Event_Id_01
 //#define SBP_PERIODIC_EVT                      Event_Id_00
 
 // Bitwise OR of all events to pend on
 #define SBP_ALL_EVENTS                        (SBP_ICALL_EVT    | \
-                                               SBP_QUEUE_EVT)
+                                               SBP_QUEUE_EVT    | \
+                                               SBP_RXTX_QUEUE_EVT)
 
 // Row numbers for two-button menu
 #define SBP_ROW_RESULT        TBM_ROW_APP
@@ -160,18 +163,12 @@ static uint8_t advertData[] =
     GAP_ADTYPE_16BIT_MORE,      // some of the UUID's, but not all
     LO_UINT16(EPD_SERVICE_SERV_UUID),
     HI_UINT16(EPD_SERVICE_SERV_UUID)
-
 #else
     16, 0x16, // spec 
     LO_UINT16(EPD_SERVICE_SERV_UUID), HI_UINT16(EPD_SERVICE_SERV_UUID),
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // mac address
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06,   // data
     0x07,
-
-    0x03,   // length of this data
-    GAP_ADTYPE_16BIT_MORE,      // some of the UUID's, but not all
-    LO_UINT16(EPD_SERVICE_SERV_UUID),
-    HI_UINT16(EPD_SERVICE_SERV_UUID)
 #endif
 };
 
@@ -533,6 +530,11 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
                 }
             }
 
+            // RXTX events
+            if (events & SBP_RXTX_QUEUE_EVT) {
+
+            }
+
             // If RTOS queue is not empty, process app message.
             if (events & SBP_QUEUE_EVT) {
                 while (!Queue_empty(appMsgQueue)) {
@@ -803,10 +805,10 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
     case GAPROLE_STARTED:
       {
         uint8_t ownAddress[B_ADDR_LEN];
-        uint8_t systemId[DEVINFO_SYSTEM_ID_LEN];
 
         GAPRole_GetParameter(GAPROLE_BD_ADDR, ownAddress);
-
+#if 0
+        uint8_t systemId[DEVINFO_SYSTEM_ID_LEN];
         // use 6 bytes of device address for 8 bytes of system ID value
         systemId[0] = ownAddress[0];
         systemId[1] = ownAddress[1];
@@ -826,6 +828,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
         // Display device address
         Display_print0(dispHandle, SBP_ROW_BDADDR, 0, Util_convertBdAddr2Str(ownAddress));
         Display_print0(dispHandle, SBP_ROW_ROLESTATE, 0, "Initialized");
+#endif        
       }
       break;
 

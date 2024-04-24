@@ -61,6 +61,11 @@ void TaskEPD_createTask(void)
   Task_construct(&EPDTask, TaskEPD_taskFxn, &taskParams, NULL);
 }
 
+void EPDTask_Update(void)
+{
+    Event_post(syncEvent, EPDTASK_EVENT_PERIODIC);
+}
+
 static void EPDTask_clockHandler(UArg arg)
 {
     Event_post(syncEvent, arg);
@@ -72,9 +77,14 @@ void TaskEPD_taskInit(void)
     // so that the application can send and receive messages.
     ICall_registerApp(&selfEntity, &syncEvent);
 
+    // second period timer
     Util_constructClock(&periodicClock, EPDTask_clockHandler,
                         1000, 0, false, EPDTASK_EVENT_PERIODIC);
+
+    // init EPD                       
     EPD_Init();
+
+    // start timer
     Util_startClock(&periodicClock);
 }
 
@@ -88,10 +98,9 @@ void TaskEPD_taskFxn(UArg a0, UArg a1)
         events = Event_pend(syncEvent, Event_Id_NONE, EPDTASK_EVENT_ALL, ICALL_TIMEOUT_FOREVER);
         
         if (events & EPDTASK_EVENT_PERIODIC) {
-
-            EPD_Update();
-
-            Util_startClock(&periodicClock);
+            if (EPD_Update()) {
+                Util_startClock(&periodicClock);
+            }
         }
     }
 }

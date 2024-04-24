@@ -32,7 +32,7 @@
             --cmd_file=${SRC_BLE_DIR}/config/build_components.opt
             --cmd_file=${SRC_BLE_DIR}/config/factory_config.opt
             --cmd_file=${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/TOOLS/build_config.opt
-            -mv7M3 -O4 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
+            -mv7M3 -O2 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
             -DDeviceFamily_CC26X0R2
             -DBOARD_DISPLAY_USE_LCD=0
             -DBOARD_DISPLAY_USE_UART=0
