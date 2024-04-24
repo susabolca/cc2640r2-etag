@@ -37,7 +37,7 @@
 
 // Minimum connection interval (units of 1.25ms, 80=100ms, min=6) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     8
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     16 
 
 // Maximum connection interval (units of 1.25ms, 800=1000ms, max=3200) for automatic
 // parameter update request
@@ -805,10 +805,10 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
     case GAPROLE_STARTED:
       {
         uint8_t ownAddress[B_ADDR_LEN];
-        uint8_t systemId[DEVINFO_SYSTEM_ID_LEN];
 
         GAPRole_GetParameter(GAPROLE_BD_ADDR, ownAddress);
 #if 0
+        uint8_t systemId[DEVINFO_SYSTEM_ID_LEN];
         // use 6 bytes of device address for 8 bytes of system ID value
         systemId[0] = ownAddress[0];
         systemId[1] = ownAddress[1];

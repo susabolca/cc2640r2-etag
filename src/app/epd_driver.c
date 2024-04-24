@@ -402,6 +402,11 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
             break;
         }
 
+        // save configuration to snv
+        case EPD_CMD_SAVE_CFG:
+            EPD_SNV_SaveCfg();
+            break;
+
         default:
             // ignore the command.
             return;
@@ -422,6 +427,43 @@ int EPD_State(uint8_t *buf, uint8_t size)
     return 0; 
 }
 
+// load configuration from SNV
+int EPD_SNV_LoadCfg()
+{
+    struct epd_snv_cfg cfg;
+    uint8_t rc = osal_snv_read(EPD_SNV_CFG, sizeof(cfg), &cfg);
+    if (rc == SUCCESS) {
+        epd_mode = cfg.u.cfg.mode;
+        utc_offset_mins = cfg.u.cfg.utc_offset;
+        epd_rtc_collab = cfg.u.cfg.rtc_collab;
+    }
+    return rc;
+}
+
+// save configuration to SNV
+int EPD_SNV_SaveCfg()
+{
+    struct epd_snv_cfg cfg;
+    cfg.u.cfg.mode = epd_mode;
+    cfg.u.cfg.utc_offset = utc_offset_mins;
+    cfg.u.cfg.rtc_collab = epd_rtc_collab;
+    return osal_snv_write(EPD_SNV_CFG, sizeof(cfg), &cfg);
+}
+
+// load lut from SNV
+int EPD_SNV_LoadLut(int index, uint8_t *lut, int len)
+{
+    uint8_t rc;
+    return osal_snv_read(EPD_SNV_LUT1 + index, len, lut);
+}
+
+// save lut to SNV
+int EPD_SNV_SaveLut(int index, const uint8_t *lut, int len)
+{
+    uint8_t rc;
+    return osal_snv_write(EPD_SNV_LUT1 + index, len, (void *)lut);
+}
+
 // should be only called once!
 void EPD_Init()
 {
@@ -439,6 +481,10 @@ void EPD_Init()
     }
 #endif
 
+    // load from snv
+    EPD_SNV_LoadCfg();
+
+    // init EPD 
     EPD_SSD_Init();
 }
 

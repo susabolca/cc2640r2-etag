@@ -66,17 +66,31 @@ enum EPD_CMD {
     EPD_CMD_SNV_WRITE,  // write ble_data to snv 
     EPD_CMD_SNV_READ,   // read snv to ble_data 
     
+    EPD_CMD_SAVE_CFG,   // save configuration to snv, rtc collaborate, utc offset, etc ...
+    
     EPD_CMD_MAX
 };
 
 // CC2640r2 SNV user area, 0x80 - 0x8f
 enum EPD_SNV {
     EPD_SNV_CFG = 0x80, // configuration
-    EPD_SNV_LUT1,       // LUT1
-    EPD_SNV_LUT2,       // LUT2
+    EPD_SNV_LUT1,       // LUT1, fast bw
+    EPD_SNV_LUT2,       // LUT2, gray bwr
     EPD_SNV_LUT3,       // LUT3
 
     EPD_SNV_MAX
+};
+
+// EPD configuration in SNV
+struct epd_snv_cfg {
+    union {
+        struct {
+            uint8_t mode;       // saved display mode
+            int8_t  rtc_collab; // saved rtc collaborate
+            int16_t utc_offset; // saved utc offset in minutes
+        } cfg;
+        uint8_t raw[32]; 
+    } u;
 };
 
 /*
@@ -89,8 +103,12 @@ enum EPD_SNV {
 #define INTFRAC2MV(x)   (INTFRAC_mV(x)+(INTFRAC_V(x)*1000))
 
 // Macro
+#ifndef MIN
 #define MIN(a,b) ((a) < (b) ? a : b)
+#endif
+#ifndef MAX
 #define MAX(a,b) ((a) > (b) ? a : b)
+#endif
 
 // the driver public,
 void EPD_Init();
@@ -107,6 +125,12 @@ uint8_t EPD_BATT_Percent();
 // RTC
 void RTC_SetCollaborate( int8_t rtc_collab );
 int8_t RTC_GetCollaborate();
+
+// SNV
+int EPD_SNV_LoadCfg();
+int EPD_SNV_SaveCfg();
+int EPD_SNV_LoadLut(int index, uint8_t *lut, int len);
+int EPD_SNV_SaveLut(int index, const uint8_t *lut, int len);
 
 // API for EPD commands
 void EPD_Command(const uint8_t *cmd, int cmd_len);

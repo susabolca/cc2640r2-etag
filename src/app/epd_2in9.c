@@ -15,6 +15,7 @@
 
 #include <time.h>       // time
 #include <stdint.h>     // uint8_t 
+#include <string.h>     // memset
 
 // OBD
 #include "OneBitDisplay.h"
@@ -27,6 +28,7 @@ OBDISP obd;
 
 extern const uint8_t ucMirror[];
 
+#if 0
 /*
  * <int.frac> format size (3.8) bits.
  * int for 0-3 voltage
@@ -35,6 +37,7 @@ extern const uint8_t ucMirror[];
 #define INTFRAC_V(x)    (x>>8)
 #define INTFRAC_mV(x)   ((x&0xff)*1000/256)
 #define INTFRAC2MV(x)   (INTFRAC_mV(x)+(INTFRAC_V(x)*1000))
+#endif
 
 // https://www.mdpi.com/2072-666X/12/5/578
 #define _VS(x) x<<6
@@ -162,6 +165,8 @@ static const uint8_t lut_lite_gray8_bwr[LUT_LITE_LEN] = {
     0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
 
+
+
 static void EPD_2IN9_Lut(const unsigned char *lut)
 {
     // SSD1680A uses 233 LUT.
@@ -209,6 +214,32 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
     // 232, VCOM
     EPD_SSD_SendCommand(0x2C);
     EPD_SSD_SendData(lut[34]);
+}
+
+static void EPD_2IN9_Lut_ById(int idx)
+{
+    uint8_t buf[LUT_LITE_LEN];
+    const uint8_t *lut = buf;
+
+    int rc = EPD_SNV_LoadLut(idx, buf, LUT_LITE_LEN);
+    if (rc != SUCCESS) {
+        // load default if no lut found.
+        switch (idx) {
+            case 0:
+                lut = lut_lite_fast_bw;
+                break;
+            case 1:
+                lut = lut_lite_gray8_bwr;
+                break;
+            default:
+                lut = NULL;
+                break;
+        }
+    }
+
+    if (lut) {
+        EPD_2IN9_Lut(lut);
+    }
 }
 
 static void EPD_2IN9_SoftReset()
@@ -423,7 +454,7 @@ void EPD_2IN9_Update_Clock(void)
 
     // full update every 30 mins
     EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-    if (!full_upd) EPD_2IN9_Lut(lut_lite_fast_bw);
+    if (!full_upd) EPD_2IN9_Lut_ById(0);
     EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
     EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
@@ -468,7 +499,7 @@ void EPD_2IN9_Update_Image()
             EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
             break;
 
-        case EPD_CMD_FILL: // write ram with color
+        case EPD_CMD_FILL: { // write ram with color
             uint8_t color = epd_step_data[0];
             if (color == 1) {   // red
                 memset(epd_buffer, 0xff, EPD_WIDTH*EPD_HEIGHT/8);
@@ -478,16 +509,22 @@ void EPD_2IN9_Update_Image()
                 EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
             }
             break;
+        }
 
         case EPD_CMD_DP: { // master
+            // display lut select
             uint8_t dpm = epd_step_data[0];
-            #if 1
-            if (dpm == 1) { // gray8 lut
-                EPD_2IN9_Lut(lut_lite_gray8_bwr);
+            if (dpm == 1) { // lut1
+                EPD_2IN9_Lut_ById(0);
+            } else if (dpm == 2) {  // lut2
+                EPD_2IN9_Lut_ById(1);
+            } else if (dpm == 3) {  // lut3
+                EPD_2IN9_Lut_ById(2);
             } else if (dpm == 0xff) {   // user ble lut
                 EPD_2IN9_Lut(ble_data);
             }
-            #endif
+            
+            // otherwise using full lut.
             EPD_2IN9_Display(dpm ? 0xc7: 0xf7);    // fast display
             EPD_SSD_WaitBusy(15 * 1000);
             EPD_2IN9_Sleep();
@@ -522,6 +559,6 @@ void EPD_SSD_Init(void)
     // ICALL still using 0x8000 (32768 ticks) for 1 seconds, 
     // (0x8000 + x) / 0x8000 = (24 * 3600) / (24 * 3600 - 10)
     // 32768 * 10 / (24 * 3600) = 3.793
-    RTC_SetCollaborate(-3);
+    RTC_SetCollaborate(epd_rtc_collab);
 }
 

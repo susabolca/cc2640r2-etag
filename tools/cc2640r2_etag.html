@@ -141,6 +141,7 @@
         EPD_CMD_SNV_WRITE: 13,
         EPD_CMD_SNV_READ: 14,
 
+        EPD_CMD_SAVE_CFG: 15,
       };
 
       var chr = await epdService.getCharacteristic(0xfffe);
@@ -219,6 +220,10 @@
         
         case 'buf_put':
           await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_PUT, 0x00, 0x01, 0x02, 0x03, 0x04]));
+          break;
+        
+        case 'save_cfg':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SAVE_CFG]));
           break;
       }
       info (`> epdCmd.${cmd}`)
@@ -441,6 +446,7 @@
     <button id="btnSetTime" type="button" onclick="doSetTime()">SetTime</button>
     <button id="btnRtcCollab" type="button" onclick="doRtcCollab()">RtcCollab</button>
     <button id="btnTest" type="button" onclick="doTest()">Test</button>
+    <button type="button" onclick="doCmd('save_cfg')">保存设置</button>
   </div>
   <div>
     <button type="button" onclick="doCmd('mode', 'image')">图片模式</button>
