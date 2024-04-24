@@ -33,7 +33,7 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 
 > 可自制 XDS110 烧写器
 
-#### cc2640r2l_2in9_ssd1680a_296x128
+### cc2640r2l_2in9_ssd1680a_296x128
 
 ![cjtag](doc/pic2.jpg)
 
@@ -44,6 +44,12 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 |3|TCLK|
 |4|TMS|
 |7|NRST|
+
+### 保留 SNV 数据
+
+固件配置 SNV (非易失存储器) 为单页模式，数据保存在 FLash 中第 30 页中。
+
+在首次烧录后，如需保留 LUT 等 SNV 设置，请在烧写器 (如 SmartRF Flash Programmer 2) 跳过第 30 页即可，设置即可保留。
 
 ## 低功耗蓝牙 BLE5
 
@@ -74,9 +80,9 @@ UUID, MAC address, Display Mode, Unix Epoch Time, Temperature, Battery Level.
 
 可通过 ble5_ctrl.py 批量获得近距离 etag 的信息。
 
-## webtools
+## Webtools
 
-当前配置能力由 cc2640r2_etag.html 完成，需使用支持 BLE5 蓝牙的 chrome 浏览器打开。
+当前配置能力由 cc2640r2_etag.html 完成，需使用支持 BLE5 蓝牙的 Chrome/Edge 浏览器打开。
 
 时钟模式功能，
 1. 获取当前 etag 的信息
