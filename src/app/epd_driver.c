@@ -421,12 +421,6 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
     }
 }
 
-// get EPD state
-int EPD_State(uint8_t *buf, uint8_t size)
-{
-    return 0; 
-}
-
 // load configuration from SNV
 int EPD_SNV_LoadCfg()
 {
@@ -492,7 +486,7 @@ int EPD_Update()
 {
     // update battery level
     epd_battery = MIN(epd_battery, AONBatMonBatteryVoltageGet()); 
-
+    
     // update Display
     return EPD_SSD_Update();
 }
