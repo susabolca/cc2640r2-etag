@@ -964,13 +964,21 @@ void getBleAdvName(char *buf)
 // update advertisement data.
 static void UpdateAdvData(void)
 {
+    static uint32_t last_epoch = 0; 
+
     struct {
         uint32_t epoch;
         uint16_t battery;
         uint8_t  temperature;   
     } state;
 
-    state.epoch = Seconds_get() / 60;
+    state.epoch = Seconds_get();
+    if (state.epoch - last_epoch < 60) {
+        return;
+    }
+    last_epoch = state.epoch;
+    
+    state.epoch /= 60;
     state.battery = epd_battery;
     state.temperature = epd_temperature;
     memcpy(&advertData[10], &state, 7);
