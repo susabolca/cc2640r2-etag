@@ -135,8 +135,8 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
 static const uint8_t lut_lite_fast_bw[LUT_LITE_LEN] = {
 //  RP      A           B           C           D           SRAB    SRCD
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTC
-    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0x0,            // LUTR 
-    0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x1,    0x0,            // LUTW
+    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0xa,            // LUTR 
+    0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x2,    0x0,            // LUTW
     0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
 
 //  FR 
@@ -394,21 +394,21 @@ void EPD_2IN9_Update_Clock(void)
     time_t now;
     time(&now);
 
-    if (clock_last && ((now % 60) != 0)) {
-        return;
-    }
- 
     // adjust TZ offset
     now += utc_offset_mins * 60;
 
     // get localtime
     struct tm *l = localtime(&now);
 
+    if (clock_last == l->tm_min) {
+        return;
+    }
+ 
     // full update on first start
     bool full_upd = (clock_last == 0 || l->tm_min == 0) ? true : false;
 
     // clock started.
-    clock_last = 1;
+    clock_last = l->tm_min;
 
     // wakeup EPD
     EPD_SSD_Reset();

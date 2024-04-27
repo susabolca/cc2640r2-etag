@@ -146,6 +146,11 @@
 
       var chr = await epdService.getCharacteristic(0xfffe);
       switch (cmd) {
+        case 'read': {
+          var data = await chr.readValue();
+          return data;
+        }
+ 
         case 'clr':
           await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_CLR]));
           break;
@@ -207,26 +212,57 @@
           break;
 
         case 'snv_read':
-          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_READ, 0x80, 16]));
+          // SNV index, read length
+          console.log(`snv read ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_READ, ...data]));
           break;
  
         case 'snv_write':
-          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_WRITE, 0x80]));
+          // SNV index
+          console.log(`snv write ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_WRITE, data]));
           break;
         
         case 'buf_get':
-          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_GET, 0x00]));
+          // buffer index
+          console.log(`buf get ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_GET, data]));
           break;
         
         case 'buf_put':
-          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_PUT, 0x00, 0x01, 0x02, 0x03, 0x04]));
+          // buffer index, data ...
+          console.log(`buf put ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_PUT, ...data]));
           break;
         
         case 'save_cfg':
           await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SAVE_CFG]));
           break;
-      }
+
+     }
       info (`> epdCmd.${cmd}`)
+    }
+
+    async function doCmdRead(snvId, size) {
+      var out = [];
+      
+      // request SNV read
+      await doCmd('snv_read', [snvId, size]);
+
+      // pull data
+      for (var i=0; i<size; ) {
+        await doCmd('buf_get', i);
+        var data = new Uint8Array((await doCmd('read')).buffer);
+        if (data.byteLength == 0) {
+          break;
+        }
+        // first byte is the data index 
+        i += data.byteLength - 1;
+
+        // add data to out, except the first byte.
+        out.push(...data.slice(1));
+      }
+      return out;
     }
 
     let ram_bw = [];
@@ -434,6 +470,48 @@
       await doCmd('buf_put', 0x00);
       await doCmd('snv_write', 0x80);
     }
+
+    async function doSnvCfg() {
+      var data = await doCmdRead(0x80, 32);
+      // data to hex string in '0x02x' format, should a zero in front of single digit.
+      var out = data.map(x => (x < 16 ? '0' : '') + x.toString(16)).join(' ');
+      console.log(out);
+    }
+    
+    async function doLutWrite() {
+      var lutId = document.getElementById('lutId').value;
+      lutId = parseInt(lutId);
+      var lut = eval(document.getElementById('lut').value);
+      info(lutId);
+      info(lut);
+
+      await doCmd('buf_put', [0, ...lut]);
+      await doCmd('snv_write', 0x80+lutId);
+    }
+
+    async function doLutRead() {
+      var lutId = document.getElementById('lutId').value;
+      lutId = parseInt(lutId);
+      try {
+        var data = await doCmdRead(0x80+lutId, 35);
+      } catch (e) {
+        info(e);
+        document.getElementById('lut').value = '[]';
+        return;
+      }
+      console.log(data);
+
+      var out = '[\n';
+      // split data to every 7 bytes a group
+      for (var i = 0; i < data.length; i += 7) {
+        var d = data.slice(i, i + 7);
+        out += d.map(x => '0x' + x.toString(16)).join(', ');
+        out += ',\n';
+      }
+      out += ']';
+      document.getElementById('lut').value = out;
+    }
+
   </script>
 
   <div>
@@ -466,14 +544,49 @@
     <br>
     <canvas id="canvas" width="296" height="128" style="border: black solid 1px;"></canvas>
     <br>
-    <button onclick="doUploadImage('gray8')">8级灰度</button>
     <button onclick="doUploadImage('full')">默认刷新</button>
+    <button onclick="doUploadImage('gray8')">8级灰度</button>
+    <select id="imgLutId">
+      <option value="1">LUT1 (FastRefresh)</option>
+      <option value="2">LUT2 (Grey 8 BWR)</option>
+      <option value="3">LUT3 (User)</option>
+    </select>
+    <button onclick="alert('TBD')">LUT刷新</button>
     <br>
   </div>
 
+
+
   <div>
-    <button type="button" onclick="doSnvWrite()">写入</button>
-    <button type="button" onclick="doSnvRead('cfg')">读出</button>
+    <textarea type="text" id="lut", rows="20", cols="80">
+// Fast Refresh LUT(Lite) for SSD1680a BWR.
+const VSS = 0b00<<6;
+const VSH1= 0b01<<6;
+const VSL = 0b10<<6;
+const VSH2= 0b11<<6;
+[
+//RP    A           B           C           D           SRAB    SRCD
+0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,  // LUTC
+0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x2,    0xa,  // LUTR 
+0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x2,    0x0,  // LUTW
+0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,  // LUTB
+
+//FR    2: 50hz, 3: 75Hz, 4: 100Hz, 5: 125Hz
+0x04,
+
+//EOPT   VGH    VSH1    VSH2     VSL    VCOM
+//      -20v     15v      3v    -15v
+0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
+];
+</textarea>
+    <br>
+    <select id="lutId">
+      <option value="1">LUT1 (FastRefresh)</option>
+      <option value="2">LUT2 (Grey 8 BWR)</option>
+      <option value="3">LUT3 (User)</option>
+    </select>
+    <button type="button" onclick="doLutWrite()">写入</button>
+    <button type="button" onclick="doLutRead()">读出</button>
   </div>
   <div id="log">
     CC2640R2-ETAG Webtool. <br>
