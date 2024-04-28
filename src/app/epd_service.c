@@ -380,7 +380,7 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
                 EpochLastVal = t;
 
                 // notify EPD to refresh
-                clock_last = -1;
+                clock_last = 0xff;
                 EPDTask_Update();
             }
             break;

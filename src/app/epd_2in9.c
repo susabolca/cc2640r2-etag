@@ -405,7 +405,7 @@ void EPD_2IN9_Update_Clock(void)
     }
  
     // full update on first start
-    bool full_upd = (clock_last == 0 || l->tm_min == 0) ? true : false;
+    bool full_upd = (clock_last > 60 || l->tm_min == 0) ? true : false;
 
     // clock started.
     clock_last = l->tm_min;
