@@ -75,7 +75,7 @@ GATT 配置,
   - UUID: FFF3, 电池电压 mV, uint16
   - UUID: FFF4, 温度 摄氏度, int8, (-127 ~ +128)
   - UUID: FFF5, RTC 微调, int8, (-5 ~ +5)
-  - UUID: FFFE, RxTx 服务, 图片模式、灰度刷新、内置LUT更新等
+  - UUID: FFFE, EPD 服务, 图片模式、灰度刷新、内置LUT更新等
 
 ### Advertising
 
@@ -88,6 +88,8 @@ UUID, MAC address, Unix Epoch Time, Temperature, Battery Level
 通告间隔为 1s。
 
 可通过 ble5_ctrl.py 批量获得近距离 etag 的信息。
+
+![ble5_ctrl](doc/ble5_ctrl.jpg)
 
 ## Webtools
 
