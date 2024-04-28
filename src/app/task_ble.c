@@ -14,7 +14,7 @@
 #include <ti/devices/DeviceFamily.h>
 #include DeviceFamily_constructPath(driverlib/sys_ctrl.h)
 
-//#include <ti/sysbios/hal/Seconds.h> // Seconds_set
+#include <ti/sysbios/hal/Seconds.h> // Seconds_set
 #include <xdc/runtime/System.h>     // snprintf
 
 // profiles
@@ -28,6 +28,7 @@
 
 #include "board.h"
 #include "task_ble.h"
+#include "epd_driver.h" // epd_xxx 
 
 // Advertising interval when device is discoverable (units of 625us, 160=100ms)
 #define DEFAULT_ADVERTISING_INTERVAL          1600
@@ -37,14 +38,14 @@
 
 // Minimum connection interval (units of 1.25ms, 80=100ms, min=6) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     16 
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     8
 
 // Maximum connection interval (units of 1.25ms, 800=1000ms, max=3200) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
+#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     80
 
 // Slave latency to use for automatic parameter update request
-#define DEFAULT_DESIRED_SLAVE_LATENCY         3
+#define DEFAULT_DESIRED_SLAVE_LATENCY         1
 
 // MEETS : CONN_TIMEOUT > (1 + SLAVE_LATENCY) * CONN_INTERVAL
 // Supervision timeout value (units of 10ms, 1000=10s, 10-3200) for automatic parameter
@@ -56,10 +57,10 @@
 #define DEFAULT_ENABLE_UPDATE_REQUEST         GAPROLE_LINK_PARAM_UPDATE_WAIT_REMOTE_PARAMS
 
 // Connection Pause Peripheral time value (in seconds)
-#define DEFAULT_CONN_PAUSE_PERIPHERAL         5
+#define DEFAULT_CONN_PAUSE_PERIPHERAL         6
 
 // How often to perform periodic event (in msec)
-//#define SBP_PERIODIC_EVT_PERIOD               5000
+#define SBP_PERIODIC_EVT_PERIOD               1000
 
 // Application specific event ID for HCI Connection Event End Events
 #define SBP_HCI_CONN_EVT_END_EVT              0x0001
@@ -79,13 +80,13 @@
 // Internal Events for RTOS application
 #define SBP_ICALL_EVT                         ICALL_MSG_EVENT_ID  // Event_Id_31
 #define SBP_QUEUE_EVT                         UTIL_QUEUE_EVENT_ID // Event_Id_30
-#define SBP_RXTX_QUEUE_EVT                    Event_Id_01
-//#define SBP_PERIODIC_EVT                      Event_Id_00
+#define SBP_PERIODIC_EVT                      Event_Id_00
+//#define SBP_RXTX_QUEUE_EVT                    Event_Id_01
 
 // Bitwise OR of all events to pend on
 #define SBP_ALL_EVENTS                        (SBP_ICALL_EVT    | \
                                                SBP_QUEUE_EVT    | \
-                                               SBP_RXTX_QUEUE_EVT)
+                                               SBP_PERIODIC_EVT)
 
 // Row numbers for two-button menu
 #define SBP_ROW_RESULT        TBM_ROW_APP
@@ -111,7 +112,7 @@ static ICall_EntityID selfEntity;
 static ICall_SyncHandle syncEvent;
 
 // Clock instances for internal periodic events.
-//static Clock_Struct periodicClock;
+static Clock_Struct periodicClock;
 
 // Queue object used for app messages
 static Queue_Struct appMsg;
@@ -167,8 +168,7 @@ static uint8_t advertData[] =
     16, 0x16, // spec 
     LO_UINT16(EPD_SERVICE_SERV_UUID), HI_UINT16(EPD_SERVICE_SERV_UUID),
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // mac address
-    0x01, 0x02, 0x03, 0x04, 0x05, 0x06,   // data
-    0x07,
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, // data
 #endif
 };
 
@@ -191,8 +191,8 @@ static uint8_t SimpleBLEPeripheral_processGATTMsg(gattMsgEvent_t *pMsg);
 static void SimpleBLEPeripheral_processAppMsg(sbpEvt_t *pMsg);
 static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState);
 //static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID);
-//static void SimpleBLEPeripheral_performPeriodicTask(void);
-//static void SimpleBLEPeripheral_clockHandler(UArg arg);
+static void SimpleBLEPeripheral_performPeriodicTask(void);
+static void SimpleBLEPeripheral_clockHandler(UArg arg);
 
 static void SimpleBLEPeripheral_sendAttRsp(void);
 static void SimpleBLEPeripheral_freeAttRsp(uint8_t status);
@@ -211,6 +211,7 @@ static void BLETask_EpdService_CfgChangeCB(uint16_t connHandle,
                                                uint8_t *pValue);
 
 extern void AssertHandler(uint8 assertCause, uint8 assertSubcause);
+void UpdateAdvData(void);
 
 // Peripheral GAPRole Callbacks
 static gapRolesCBs_t SimpleBLEPeripheral_gapRoleCBs =
@@ -286,8 +287,8 @@ static void SimpleBLEPeripheral_init(void)
     appMsgQueue = Util_constructQueue(&appMsg);
 
     // Create one-shot clocks for internal periodic events.
-    //Util_constructClock(&periodicClock, SimpleBLEPeripheral_clockHandler,
-    //                    SBP_PERIODIC_EVT_PERIOD, 0, false, SBP_PERIODIC_EVT);
+    Util_constructClock(&periodicClock, SimpleBLEPeripheral_clockHandler,
+                        SBP_PERIODIC_EVT_PERIOD, 0, false, SBP_PERIODIC_EVT);
 
     //dispHandle = Display_open(SBP_DISPLAY_TYPE, NULL);
 
@@ -476,10 +477,15 @@ static void SimpleBLEPeripheral_init(void)
     HCI_LE_ReadLocalSupportedFeaturesCmd();
 #endif // !defined (USE_LL_CONN_PARAM_UPDATE)
 
+
     // Start the GAPRole
     VOID GAPRole_StartDevice(&SimpleBLEPeripheral_gapRoleCBs);
+    
+    // timer start
+    Util_startClock(&periodicClock);
 }
 
+static ICall_heapStats_t state;
 static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
 {
     // Initialize application
@@ -530,9 +536,11 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
                 }
             }
 
-            // RXTX events
-            if (events & SBP_RXTX_QUEUE_EVT) {
+            if (events & SBP_PERIODIC_EVT) {
+              Util_startClock(&periodicClock);
 
+              UpdateAdvData();
+              EPDTask_Update();
             }
 
             // If RTOS queue is not empty, process app message.
@@ -925,13 +933,11 @@ static void BLETask_EpdService_CfgChangeCB(uint16_t connHandle,
     // no thing
 }
 
-#if 0
 static void SimpleBLEPeripheral_clockHandler(UArg arg)
 {
   // Wake up the application.
   Event_post(syncEvent, arg);
 }
-#endif
 
 static void SimpleBLEPeripheral_enqueueMsg(uint8_t event, uint8_t state)
 {
@@ -953,4 +959,29 @@ void getBleAdvName(char *buf)
 {
     memcpy(buf, scanRspData+2, 10);
     buf[11]='\0';
+}
+
+// update advertisement data.
+static void UpdateAdvData(void)
+{
+    static uint32_t last_epoch = 0; 
+
+    struct {
+        uint32_t epoch;
+        uint16_t battery;
+        uint8_t  temperature;   
+    } state;
+
+    state.epoch = Seconds_get();
+    if (state.epoch - last_epoch < 60) {
+        return;
+    }
+    last_epoch = state.epoch;
+    
+    state.epoch /= 60;
+    state.battery = epd_battery;
+    state.temperature = epd_temperature;
+    memcpy(&advertData[10], &state, 7);
+
+    uint8 status = GAPRole_SetParameter(GAPROLE_ADVERT_DATA, sizeof(advertData), advertData);
 }

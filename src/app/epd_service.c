@@ -339,6 +339,9 @@ static bStatus_t EPDService_ReadAttrCB(uint16_t connHandle,
         case EPD_RXTX_UUID: {
             // send ble_data to BLE.
             uint8_t idx = ble_data_cur;
+            if (idx >= ble_data_len) {
+                return ATT_ERR_ATTR_NOT_FOUND;
+            }
             uint8_t len = MIN(ble_data_len - idx, maxLen - 1);
             // index, data ...
             pValue[0] = idx;
@@ -377,7 +380,7 @@ static bStatus_t EPDService_WriteAttrCB(uint16_t connHandle,
                 EpochLastVal = t;
 
                 // notify EPD to refresh
-                clock_last = 0;
+                clock_last = -1;
                 EPDTask_Update();
             }
             break;

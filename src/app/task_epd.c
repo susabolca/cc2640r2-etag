@@ -37,11 +37,11 @@ Event_Struct EPDEvent;
 //Event_Handle hEPDEvent;
 
 //#define EPDTASK_EVENT_RX_REQUEST        Event_Id_00
-#define EPDTASK_EVENT_PERIODIC          Event_Id_01
+#define EPDTASK_EVENT_PERIODIC          Event_Id_02
 
 #define EPDTASK_EVENT_ALL               ( EPDTASK_EVENT_PERIODIC )
 
-static Clock_Struct periodicClock;
+//static Clock_Struct periodicClock;
 
 
 //static void handle_cmd();       
@@ -78,14 +78,14 @@ void TaskEPD_taskInit(void)
     ICall_registerApp(&selfEntity, &syncEvent);
 
     // second period timer
-    Util_constructClock(&periodicClock, EPDTask_clockHandler,
-                        1000, 0, false, EPDTASK_EVENT_PERIODIC);
+    //Util_constructClock(&periodicClock, EPDTask_clockHandler,
+    //                    1000, 0, false, EPDTASK_EVENT_PERIODIC);
 
     // init EPD                       
     EPD_Init();
 
     // start timer
-    Util_startClock(&periodicClock);
+    //Util_startClock(&periodicClock);
 }
 
 void TaskEPD_taskFxn(UArg a0, UArg a1)
@@ -99,7 +99,7 @@ void TaskEPD_taskFxn(UArg a0, UArg a1)
         
         if (events & EPDTASK_EVENT_PERIODIC) {
             if (EPD_Update()) {
-                Util_startClock(&periodicClock);
+                //Util_startClock(&periodicClock);
             }
         }
     }

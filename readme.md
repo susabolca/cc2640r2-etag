@@ -29,13 +29,15 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 
 ## 烧写
 
-电子标签为 cjtag 2 wire, 需要 xds 或者 jlink 烧写器.
+电子标签为 cjtag 2 wire, 需要 xds 100v3 以上 或者 jlink v10 以上烧写器.
 
-> 可自制 XDS110 烧写器
+> 低成本也可选自制 xds110 烧写器 (功能和官方一样)
+
+![download](doc/pic4.jpg)
 
 ### cc2640r2l_2in9_ssd1680a_296x128
 
-![cjtag](doc/pic2.jpg)
+![cjtag_2in9](doc/pic2.jpg)
 
 |PIN|FOR|
 |-|-|
@@ -45,11 +47,18 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 |4|TMS|
 |7|NRST|
 
+
+### cc2640r2l_2in13_ssd1680_250x122
+
+![cjtag_2in13](doc/pic3.jpg)
+
+PIN 定义同上
+
 ### 保留 SNV 数据
 
 固件配置 SNV (非易失存储器) 为单页模式，数据保存在 FLash 中第 30 页中。
 
-在首次烧录后，如需保留 LUT 等 SNV 设置，请在烧写器 (如 SmartRF Flash Programmer 2) 跳过第 30 页即可，设置即可保留。
+在首次烧录后，如需保留 LUT 等 SNV 设置，请在烧写器 (如 SmartRF Flash Programmer 2) 跳过第 30 页，设置即可保留。
 
 ## 低功耗蓝牙 BLE5
 
@@ -73,7 +82,7 @@ GATT 配置,
 本固件通过 BLE Adv 中的 Service Data 通告当前 etag 的数据，格式如下
 
 ```
-UUID, MAC address, Display Mode, Unix Epoch Time, Temperature, Battery Level.
+UUID, MAC address, Unix Epoch Time, Temperature, Battery Level
 ```
 
 通告间隔为 1s。

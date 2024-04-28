@@ -53,7 +53,7 @@ uint8_t epd_step = EPD_CMD_NC;
 uint8_t epd_step_data[EPD_STEP_DATA_LEN];   // store parameters 
 
 // the clock refesh on change
-uint8_t clock_last = 0;
+uint8_t clock_last = -1;
 
 // BLE data buffer
 uint8_t ble_data[BLE_DATA_MAX];
@@ -312,7 +312,7 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
         // display mode change
         case EPD_CMD_MODE:
             if (epd_mode != cmd[1]) {
-                clock_last = 0;     // stop clock
+                clock_last = -1;
                 epd_mode = cmd[1];
                 need_update = 1;
             }
@@ -421,12 +421,6 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
     }
 }
 
-// get EPD state
-int EPD_State(uint8_t *buf, uint8_t size)
-{
-    return 0; 
-}
-
 // load configuration from SNV
 int EPD_SNV_LoadCfg()
 {
@@ -492,7 +486,7 @@ int EPD_Update()
 {
     // update battery level
     epd_battery = MIN(epd_battery, AONBatMonBatteryVoltageGet()); 
-
+    
     // update Display
     return EPD_SSD_Update();
 }
