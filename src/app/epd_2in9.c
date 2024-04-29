@@ -21,6 +21,7 @@
 #include "OneBitDisplay.h"
 #include "font16.h"
 #include "font24.h"
+#include "font24zh.h"
 #include "font80.h"
 
 // One Bit Display
@@ -432,9 +433,20 @@ void EPD_2IN9_Update_Clock(void)
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 250, 128, buf, 1);
 
     // date
+    System_snprintf(buf, 32, "%u-%02u-%02u", 1900+l->tm_year, l->tm_mon+1, l->tm_mday);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 2, 22, buf, 1);
+
+    // week
+#if 1       // in chinese
+    {
+        char fmt[] = {0x37, 0x38, 0x30 + l->tm_wday, '\0'};   // chinese week day 
+        obdWriteStringCustom(&obd, (GFXfont *)&Hei24pt, 158, 20, fmt, 1);
+    }
+#else 
     const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
     System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 2, 22, buf, 1);
+#endif
 
     // temp
     epd_temperature = EPD_2IN9_ReadTemp();
