@@ -250,6 +250,7 @@
                     <state>Display_DISABLE_ALL</state>
                     <state>xdc_runtime_Assert_DISABLE_ALL</state>
                     <state>xdc_runtime_Log_DISABLE_ALL</state>
+                    <state>CACHE_AS_RAM</state>
                 </option>
                 <option>
                     <name>CCPreprocFile</name>
@@ -781,6 +782,7 @@
                 <option>
                     <name>IlinkConfigDefines</name>
                     <state>CC2650=2</state>
+                    <state>CACHE_AS_RAM=1</state>
                     <state>FLASH_ROM_BUILD=2</state>
                 </option>
                 <option>
