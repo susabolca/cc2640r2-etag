@@ -34,6 +34,7 @@
             --cmd_file=${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/TOOLS/build_config.opt
             -mv7M3 -O2 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
             -DDeviceFamily_CC26X0R2
+            -DCACHE_AS_RAM
             -DBOARD_DISPLAY_USE_LCD=0
             -DBOARD_DISPLAY_USE_UART=0
             -DBOARD_DISPLAY_USE_UART_ANSI=1
@@ -89,6 +90,7 @@
             -l${SRC_BLE_DIR}/common/cc26xx/ccs/cc26xx_app.cmd
             -x
             --define=CC26X0ROM=2
+            --define=CACHE_AS_RAM=1
             --diag_suppress=16002-D
             --diag_suppress=10247-D
             --diag_suppress=10325-D
@@ -184,6 +186,7 @@
         <file path="EXAMPLE_BLE_ROOT/src/app/font16.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font16zh.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font24.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
+        <file path="EXAMPLE_BLE_ROOT/src/app/font24zh.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font30.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font40.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>
         <file path="EXAMPLE_BLE_ROOT/src/app/font60.h" openOnCreation="" excludeFromBuild="false" action="link" targetDirectory="Application" createVirtualFolders="true" applicableConfigurations="FlashROM, FlashROM_StackLibrary, FlashROM_StackLibrary_RCOSC"/>

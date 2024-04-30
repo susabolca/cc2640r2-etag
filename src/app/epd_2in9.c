@@ -21,10 +21,11 @@
 #include "OneBitDisplay.h"
 #include "font16.h"
 #include "font24.h"
+#include "font24zh.h"
 #include "font80.h"
 
 // One Bit Display
-OBDISP obd;
+OBDISP obd = {0};
 
 extern const uint8_t ucMirror[];
 
@@ -135,9 +136,9 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
 static const uint8_t lut_lite_fast_bw[LUT_LITE_LEN] = {
 //  RP      A           B           C           D           SRAB    SRCD
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTC
-    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0xa,            // LUTR 
+    0x0,    VSL|0x3f,   0x0,        VSH2|0x3f,  0x0,        0x0,    0x0,            // LUTR
     0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x2,    0x0,            // LUTW
-    0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
+    0x1,    VSH1|0x1f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
 
 //  FR 
     0x04, // 2: 50hz, 3: 75Hz, 4: 100Hz, 5: 125Hz
@@ -164,8 +165,6 @@ static const uint8_t lut_lite_gray8_bwr[LUT_LITE_LEN] = {
 //  22      -20v    15v     3.0v      -15v
     0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
-
-
 
 static void EPD_2IN9_Lut(const unsigned char *lut)
 {
@@ -404,8 +403,8 @@ void EPD_2IN9_Update_Clock(void)
         return;
     }
  
-    // full update on first start
-    bool full_upd = (clock_last > 60 || l->tm_min == 0) ? true : false;
+    // full update on first start and midnight.
+    bool full_upd = (clock_last > 60 || (l->tm_hour == 0 && l->tm_min == 0)) ? true : false;
 
     // clock started.
     clock_last = l->tm_min;
@@ -432,9 +431,20 @@ void EPD_2IN9_Update_Clock(void)
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 250, 128, buf, 1);
 
     // date
+    System_snprintf(buf, 32, "%u-%02u-%02u", 1900+l->tm_year, l->tm_mon+1, l->tm_mday);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 2, 22, buf, 1);
+
+    // week
+#if 1       // in chinese
+    {
+        char fmt[] = {0x37, 0x38, 0x30 + l->tm_wday, '\0'};   // chinese week day 
+        obdWriteStringCustom(&obd, (GFXfont *)&Hei24pt, 158, 20, fmt, 1);
+    }
+#else 
     const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
     System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 2, 22, buf, 1);
+#endif
 
     // temp
     epd_temperature = EPD_2IN9_ReadTemp();

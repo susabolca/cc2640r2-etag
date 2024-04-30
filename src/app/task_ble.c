@@ -38,11 +38,11 @@
 
 // Minimum connection interval (units of 1.25ms, 80=100ms, min=6) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     8
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
 
 // Maximum connection interval (units of 1.25ms, 800=1000ms, max=3200) for automatic
 // parameter update request
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     80
+#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
 
 // Slave latency to use for automatic parameter update request
 #define DEFAULT_DESIRED_SLAVE_LATENCY         1
@@ -105,22 +105,22 @@ typedef struct
 Display_Handle dispHandle = NULL;
 
 // Entity ID globally used to check for source and/or destination of messages
-static ICall_EntityID selfEntity;
+static ICall_EntityID selfEntity = {0};
 
 // Event globally used to post local events and pend on system and
 // local events.
-static ICall_SyncHandle syncEvent;
+static ICall_SyncHandle syncEvent = {0};
 
 // Clock instances for internal periodic events.
-static Clock_Struct periodicClock;
+static Clock_Struct periodicClock = {0};
 
 // Queue object used for app messages
-static Queue_Struct appMsg;
-static Queue_Handle appMsgQueue;
+static Queue_Struct appMsg = {0};
+static Queue_Handle appMsgQueue = {0};
 
 // Task configuration
-Task_Struct sbpTask;
-Char sbpTaskStack[SBP_TASK_STACK_SIZE];
+Task_Struct sbpTask = {0};
+Char sbpTaskStack[SBP_TASK_STACK_SIZE] = {0};
 
 // Scan response data (max size = 31 bytes)
 static uint8_t scanRspData[] =
@@ -375,10 +375,10 @@ static void SimpleBLEPeripheral_init(void)
         // This device only has display capabilities. Therefore, it will display the
         // passcode during pairing. However, since the default passcode is being
         // used, there is no need to display anything.
-        uint8_t ioCap = GAPBOND_IO_CAP_DISPLAY_ONLY;
+        uint8_t ioCap = GAPBOND_IO_CAP_NO_INPUT_NO_OUTPUT; //GAPBOND_IO_CAP_DISPLAY_ONLY;
         // Request bonding (storing long-term keys for re-encryption upon subsequent
         // connections without repairing)
-        uint8_t bonding = 0; //TRUE;
+        uint8_t bonding = TRUE;
 
         GAPBondMgr_SetParameter(GAPBOND_DEFAULT_PASSCODE, sizeof(uint32_t), &passkey);
         GAPBondMgr_SetParameter(GAPBOND_PAIRING_MODE, sizeof(uint8_t), &pairMode);

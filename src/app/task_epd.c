@@ -19,8 +19,8 @@
 
 #define EPD_TASK_PRIORITY                     1
 #define EPD_TASK_STACK_SIZE                   512
-Task_Struct EPDTask;
-Char EPDTaskStack[EPD_TASK_STACK_SIZE];
+Task_Struct EPDTask = {0};
+Char EPDTaskStack[EPD_TASK_STACK_SIZE] = {0};
 
 // Entity ID globally used to check for source and/or destination of messages
 static ICall_EntityID selfEntity;
