@@ -40,7 +40,7 @@ extern uint8_t epd_step_data[EPD_STEP_DATA_LEN];
 extern uint8_t clock_last;
 
 // ble data buffer
-#define BLE_DATA_MAX    256
+#define BLE_DATA_MAX  256
 extern uint8_t ble_data[BLE_DATA_MAX];  // ble data, a 256 bytes buffer
 extern uint8_t ble_data_len;            // indicate the length of ble_data
 extern uint8_t ble_data_cur;            // indicate the current position of ble_data

@@ -15,7 +15,7 @@
 
 // gpio setting
 static PIN_Handle GPIOHandle = NULL;
-static PIN_State  GPIOState;
+static PIN_State  GPIOState = {0};
 static PIN_Config GPIOTable[] = {
   //EPD_POWER_PIN | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
   EPD_BUSY_PIN  | PIN_GPIO_OUTPUT_DIS | PIN_INPUT_EN |  PIN_PULLUP,
@@ -27,11 +27,11 @@ static PIN_Config GPIOTable[] = {
   PIN_TERMINATE
 };
 
-// epd frame buffer
+// epd frame buffer，stay in GPRAM
 uint8_t epd_buffer[EPD_BUF_MAX];
 
 // debug only
-int lut_size; 
+int lut_size = 0;
 
 // local time to UTC time offset, in minuts.
 int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
@@ -50,13 +50,13 @@ int8_t epd_rtc_collab = -3;
 
 // EPD BLE step
 uint8_t epd_step = EPD_CMD_NC;
-uint8_t epd_step_data[EPD_STEP_DATA_LEN];   // store parameters 
+uint8_t epd_step_data[EPD_STEP_DATA_LEN] ={0};   // store parameters
 
 // the clock refesh on change
 uint8_t clock_last = 0xff;
 
 // BLE data buffer
-uint8_t ble_data[BLE_DATA_MAX];
+uint8_t ble_data[BLE_DATA_MAX] = {0};
 uint8_t ble_data_len = 0;
 uint8_t ble_data_cur = 0;
 

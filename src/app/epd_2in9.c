@@ -25,7 +25,7 @@
 #include "font80.h"
 
 // One Bit Display
-OBDISP obd;
+OBDISP obd = {0};
 
 extern const uint8_t ucMirror[];
 
@@ -165,8 +165,6 @@ static const uint8_t lut_lite_gray8_bwr[LUT_LITE_LEN] = {
 //  22      -20v    15v     3.0v      -15v
     0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
 };
-
-
 
 static void EPD_2IN9_Lut(const unsigned char *lut)
 {
