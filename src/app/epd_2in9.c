@@ -136,9 +136,9 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
 static const uint8_t lut_lite_fast_bw[LUT_LITE_LEN] = {
 //  RP      A           B           C           D           SRAB    SRCD
     0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,            // LUTC
-    0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x1,    0xa,            // LUTR 
+    0x0,    VSL|0x3f,   0x0,        VSH2|0x3f,  0x0,        0x0,    0x0,            // LUTR
     0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x2,    0x0,            // LUTW
-    0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
+    0x1,    VSH1|0x1f,  0x0,        0x0,        0x0,        0x1,    0x0,            // LUTB
 
 //  FR 
     0x04, // 2: 50hz, 3: 75Hz, 4: 100Hz, 5: 125Hz
@@ -403,8 +403,8 @@ void EPD_2IN9_Update_Clock(void)
         return;
     }
  
-    // full update on first start
-    bool full_upd = (clock_last > 60 || l->tm_min == 0) ? true : false;
+    // full update on first start and midnight.
+    bool full_upd = (clock_last > 60 || (l->tm_hour == 0 && l->tm_min == 0)) ? true : false;
 
     // clock started.
     clock_last = l->tm_min;
