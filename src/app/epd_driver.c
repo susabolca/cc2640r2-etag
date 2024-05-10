@@ -40,7 +40,7 @@ int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
 uint16_t epd_battery = -1;
 
 // in degree celcius, read from EPD.
-int8_t epd_temperature;
+int8_t epd_temperature = 0xff;
 
 // display mode (default is clock)
 uint8_t epd_mode = EPD_MODE_CLOCK;
@@ -56,7 +56,7 @@ uint8_t epd_step_data[EPD_STEP_DATA_LEN] ={0};   // store parameters
 uint8_t clock_last = 0xff;
 
 // BLE data buffer
-uint8_t ble_data[BLE_DATA_MAX] = {0};
+uint8_t ble_data[BLE_DATA_MAX];
 uint8_t ble_data_len = 0;
 uint8_t ble_data_cur = 0;
 

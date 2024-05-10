@@ -21,7 +21,7 @@ tools 下提供 bwr_gray8.act 调色板，便于在 Photoshop 里生成 BWR 色�
 
 ## 编译
 
-IAR 9.40 或 CCS 12.5
+CCS 12.4
 
 SDK: simplelink_cc2640r2_sdk_1_40_00_45
 

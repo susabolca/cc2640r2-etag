@@ -16,6 +16,7 @@
 
 #include <time.h>       // time
 #include <stdint.h>     // uint8_t 
+#include <string.h>     // memset 
 
 // OBD
 #include "OneBitDisplay.h"
@@ -24,7 +25,7 @@
 #include "font16.h"
 
 // One Bit Display
-OBDISP obd;
+OBDISP obd = {0};
 
 extern const uint8_t ucMirror[];
 
@@ -44,6 +45,41 @@ extern const uint8_t ucMirror[];
 #define BW__ V(VH1, VSL, VSS, VSS)
 #define RW__ V(VH2, VSL, VSS, VSS)
 
+// fast refresh for clock.
+static const uint8_t lut_fast_bw[] = {
+//  VS [0-11] phase [ABCD]
+//     0     1     2     3     4     5     6     7     8     9    10    11
+    B___, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT0 B
+    _W__, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT1 W
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT2 R
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT3 NC?
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT4 VCOM
+// 60: 
+//  TP A, TP B, SRAB, TP C, TP D, SRCD,   RP
+    0x04, 0x10, 0x03, 0x00, 0x00, 0x00, 0x02,   // 0
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 1
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 2
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 3
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 4
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 5
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 6
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 7
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 8
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 9
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 10
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 11
+// 144: FR  25-200Hz
+    0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
+// 150: XON
+    0x00, 0x00, 0x00,
+// 153:
+//  EOPT    VGH     VSH1    VSH2    VSL     VCOM
+//  3F      03      04                      2C
+//  22      -20v    15v     3v      -15v
+    0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
+};
+
+// fast full refresh.
 static const uint8_t lut_full_bwr[] = {
 //  VS [0-11] phase [ABCD]
 //     0     1     2     3     4     5     6     7     8     9    10    11
@@ -107,7 +143,7 @@ static int8_t EPD_2IN13_ReadTemp()
     
     // soft reset
     EPD_SSD_SendCommand(0x12);
-    EPD_SSD_WaitBusy();
+    EPD_SSD_WaitBusy(100);
 
     // Border Waveform
     EPD_SSD_SendCommand(0x3C);
@@ -123,7 +159,7 @@ static int8_t EPD_2IN13_ReadTemp()
 
     // Master Activation
     EPD_SSD_SendCommand(0x20);
-    EPD_SSD_WaitBusy();
+    EPD_SSD_WaitBusy(100);
 
     // read temperature
     EPD_SSD_SendCommand(0x1b);
@@ -151,8 +187,8 @@ static void EPD_2IN13_BWR(int width, int height, int left, int top)
     int h1 = h0 + height/8 - 1;
     
     // soft reset
-    EPD_SSD_SendCommand(0x12); 
-    EPD_SSD_WaitBusy();
+    //EPD_SSD_SendCommand(0x12); 
+    //EPD_SSD_WaitBusy();
 
     // Border Waveform
     EPD_SSD_SendCommand(0x3C); 
@@ -226,16 +262,47 @@ void EPD_2IN13_Sleep(void)
     EPD_SSD_SendData(0x01);       // 01: mode 1, 11: mode 2
 }
 
-void EPD_SSD_Update(void)
+void EPD_2IN13_Clear(void)
 {
-    static time_t last = 0;
-    time_t now = time(NULL);
-    if (last && ((now % 60) != 0)) {
+    // wakeup EPD
+    EPD_SSD_Reset();
+
+    // do reset
+    EPD_2IN13_SoftReset();
+
+    // write white to ram
+    EPD_2IN13_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
+    EPD_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+    EDP_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+
+    // full display
+    EPD_2IN13_Display(0xf7);
+
+    // wait & sleep
+    EPD_SSD_WaitBusy(15*1000);
+    EPD_2IN13_Sleep();
+}
+
+void EPD_SSD_Update_Clock(void)
+{
+    time_t now;
+    time(&now);
+
+    // adjust TZ offset
+    now += utc_offset_mins * 60;
+
+    // get localtime
+    struct tm *l = localtime(&now);
+
+    if (clock_last == l->tm_min) {
         return;
     }
-    last = now;
-    now += utc_offset_mins * 60;
-    struct tm *l = localtime(&now);
+ 
+    // full update on every hour.
+    bool full_upd = (clock_last > 60 || (l->tm_min == 0)) ? true : false;
+
+    // clock started.
+    clock_last = l->tm_min;
 
     // wakeup EPD
     EPD_SSD_Reset();
@@ -271,41 +338,45 @@ void EPD_SSD_Update(void)
     System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
     obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_64, 12, 28+70, buf, 1);
 
-    // endian and invent
+    // date
+    const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+    System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 0, 24, buf, 1);
+
+    // edian and invent 
     for (int i=0; i<sizeof(epd_buffer); i++) {
         uint8_t c = epd_buffer[i];
         epd_buffer[i] = ~ucMirror[c];
     }
 
-    // full update every 30 mins
-    //bool full_upd = true;
-    bool full_upd = (l->tm_min == 0 || l->tm_min == 30) ? true : false;
+    // full or fast update 
     EPD_2IN13_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-    if (!full_upd) EPD_2IN13_Lut(lut_full_bwr);
+    if (!full_upd) 
+        EPD_2IN13_Lut(lut_fast_bw);
+    else 
+        EPD_2IN13_Lut(lut_full_bwr);
     EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
-
-    // red
-    obdFill(&obd, 0, 0);
-
-    // date
-    const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-    System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 0, 24, buf, 1);
-    for (int i=0; i<sizeof(epd_buffer); i++) {
-        uint8_t c = epd_buffer[i];
-        epd_buffer[i] = ucMirror[c];
-    }
-
-    EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+    EPD_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
     // show 
-    EPD_2IN13_Display(full_upd ? 0xf7 : 0xc7);    // c7: by REG  f7: by OTP   b1: no display 
-    EPD_SSD_WaitBusy();
+    EPD_2IN13_Display(full_upd? 0xf7:0xc7);    // c7: by REG  f7: by OTP   b1: no display 
+    EPD_SSD_WaitBusy(15*1000);
     EPD_2IN13_Sleep();
     return;
 }
 
+int EPD_SSD_Update(void)
+{
+    EPD_SSD_Update_Clock();
+
+    // as we only support clock for 2in13,
+    // need to return 1 to keep the timer running
+    return 1;
+}
+
 void EPD_SSD_Init(void)
 {
+    EPD_SSD_Reset();
 
+    RTC_SetCollaborate(epd_rtc_collab);
 }
