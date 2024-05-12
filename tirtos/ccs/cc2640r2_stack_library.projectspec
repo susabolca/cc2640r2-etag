@@ -2,7 +2,7 @@
 
 <projectSpec>
     <project
-        name="ble5_simple_peripheral_cc2640r2lp_stack_library"
+        name="cc2640r2_stack_library"
         device="CC2640R2F"
         cgtVersion="16.9"
         connection="common/targetdb/connections/TIXDS110_Connection.xml"

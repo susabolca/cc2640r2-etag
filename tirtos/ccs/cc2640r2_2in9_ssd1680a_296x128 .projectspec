@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <projectSpec>
-    <import spec="ble5_simple_peripheral_cc2640r2lp_stack_library.projectspec"/>
+    <import spec="cc2640r2_stack_library.projectspec"/>
     <project
-        name="ble5_simple_peripheral_cc2640r2lp_app"
+        name="cc2640r2_2in9_ssd1680a_296x128_app"
         device="CC2640R2F"
         cgtVersion="16.9"
         connection="common/targetdb/connections/TIXDS110_Connection.xml"
@@ -13,7 +13,7 @@
         postBuildStep="${CG_TOOL_HEX} -order MS --memwidth=8 --romwidth=8 --intel -o ${ProjName}.hex ${ProjName}.out"
         description=""
         launchWizard="false"
-        references="ble5_simple_peripheral_cc2640r2lp_stack_library"
+        references="cc2640r2_stack_library"
     >
 
         <!-- Project properties -->
@@ -31,13 +31,14 @@
             compilerBuildOptions="
             --cmd_file=${SRC_BLE_DIR}/config/build_components.opt
             --cmd_file=${SRC_BLE_DIR}/config/factory_config.opt
-            --cmd_file=${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/TOOLS/build_config.opt
+            --cmd_file=${WORKSPACE_LOC}/cc2640r2_stack_library/TOOLS/build_config.opt
             -mv7M3 -O2 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
             -DDeviceFamily_CC26X0R2
             -DCACHE_AS_RAM
             -DBOARD_DISPLAY_USE_LCD=0
             -DBOARD_DISPLAY_USE_UART=0
             -DBOARD_DISPLAY_USE_UART_ANSI=1
+            -DEPD_2IN9_SSD1680A
             -DCC2640R2_LAUNCHXL
             -DCC26XX
             -DCC26XX_R2
@@ -84,9 +85,9 @@
             -l${SRC_BLE_DIR}/../../../source/ti/display/lib/display.aem3
             -l${SRC_BLE_DIR}/../../../source/ti/grlib/lib/grlib.aem3
             -l${SRC_BLE_DIR}/../../../source/ti/mw/lcd/lib/lcd.aem3
-            -l${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/FlashROM_Library/ble_r2.symbols
-            -l${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/FlashROM_Library/lib_linker.cmd
-            -l${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/FlashROM_Library/ble5_simple_peripheral_cc2640r2lp_stack_library.lib
+            -l${WORKSPACE_LOC}/cc2640r2_stack_library/FlashROM_Library/ble_r2.symbols
+            -l${WORKSPACE_LOC}/cc2640r2_stack_library/FlashROM_Library/lib_linker.cmd
+            -l${WORKSPACE_LOC}/cc2640r2_stack_library/FlashROM_Library/cc2640r2_stack_library.lib
             -l${SRC_BLE_DIR}/common/cc26xx/ccs/cc26xx_app.cmd
             -x
             --define=CC26X0ROM=2
@@ -103,7 +104,7 @@
             compilerBuildOptions="
             --cmd_file=${SRC_BLE_DIR}/config/build_components.opt
             --cmd_file=${SRC_BLE_DIR}/config/factory_config.opt
-            --cmd_file=${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/TOOLS/build_config.opt
+            --cmd_file=${WORKSPACE_LOC}/cc2640r2_stack_library/TOOLS/build_config.opt
             -mv7M3 -O4 --opt_for_speed=0 --code_state=16 --abi=eabi -me -g --c99 --gcc --gen_func_subsections=on --display_error_number --diag_wrap=off
             -DDeviceFamily_CC26X0R2
             -DBOARD_DISPLAY_USE_LCD=0
@@ -157,9 +158,9 @@
             -l${SRC_BLE_DIR}/../../../source/ti/display/lib/display.aem3
             -l${SRC_BLE_DIR}/../../../source/ti/grlib/lib/grlib.aem3
             -l${SRC_BLE_DIR}/../../../source/ti/mw/lcd/lib/lcd.aem3
-            -l${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/FlashROM_Library/ble_r2.symbols
-            -l${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/FlashROM_Library/lib_linker.cmd
-            -l${WORKSPACE_LOC}/ble5_simple_peripheral_cc2640r2lp_stack_library/FlashROM_Library/ble5_simple_peripheral_cc2640r2lp_stack_library.lib
+            -l${WORKSPACE_LOC}/cc2640r2_stack_library/FlashROM_Library/ble_r2.symbols
+            -l${WORKSPACE_LOC}/cc2640r2_stack_library/FlashROM_Library/lib_linker.cmd
+            -l${WORKSPACE_LOC}/cc2640r2_stack_library/FlashROM_Library/cc2640r2_stack_library.lib
             -l${SRC_BLE_DIR}/common/cc26xx/ccs/cc26xx_app.cmd
             -x
             --define=CC26X0ROM=2
