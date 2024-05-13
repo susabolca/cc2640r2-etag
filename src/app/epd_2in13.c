@@ -22,6 +22,7 @@
 #include "OneBitDisplay.h"
 #include "font64.h"
 #include "font24.h"
+#include "font24zh.h"
 #include "font16.h"
 
 // One Bit Display
@@ -299,7 +300,7 @@ void EPD_SSD_Update_Clock(void)
     }
  
     // full update on every hour.
-    bool full_upd = (clock_last > 60 || (l->tm_min == 0)) ? true : false;
+    bool full_upd = (clock_last > 60 || (l->tm_hour== 0 && l->tm_min == 0)) ? true : false;
 
     // clock started.
     clock_last = l->tm_min;
@@ -328,20 +329,27 @@ void EPD_SSD_Update_Clock(void)
 #endif    
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 118, buf, 1);
 
-    // battery voltage
-    uint16_t v = epd_battery;
+    // temperature
     epd_temperature = EPD_2IN13_ReadTemp();
-    System_snprintf(buf, 32, "%3uc %u.%uv", epd_temperature, INTFRAC_V(v), INTFRAC_mV(v)/100);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 164, 118, buf, 1);
+    System_snprintf(buf, 32, "%3uc", epd_temperature);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 158, 118, buf, 1);
+
+    // battery
+    uint8_t v = EPD_BATT_Percent(); 
+    System_snprintf(buf, 32, "%3u%%", v);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 200, 118, buf, 1);
 
     // time
     System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
     obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_64, 12, 28+70, buf, 1);
 
     // date
-    const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-    System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
+    System_snprintf(buf, 32, "%u-%02u-%02u", 1900+l->tm_year, l->tm_mon+1, l->tm_mday);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 0, 24, buf, 1);
+
+    // week
+    char fmt[] = {0x37, 0x38, 0x30 + l->tm_wday, '\0'};   // chinese week day 
+    obdWriteStringCustom(&obd, (GFXfont *)&Hei24pt, 158, 21, fmt, 1);
 
     // edian and invent 
     for (int i=0; i<sizeof(epd_buffer); i++) {
@@ -358,8 +366,8 @@ void EPD_SSD_Update_Clock(void)
     EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
     EPD_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
-    // show 
-    EPD_2IN13_Display(full_upd? 0xf7:0xc7);    // c7: by REG  f7: by OTP   b1: no display 
+    // show
+    EPD_2IN13_Display(0xc7);    // c7: by REG  f7: by OTP   b1: no display 
     EPD_SSD_WaitBusy(15*1000);
     EPD_2IN13_Sleep();
     return;
