@@ -13,9 +13,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.level = logging.DEBUG
 
-name_prefix = "C26_b102e6"
+name_prefix = "C26_b108"
 
-def filter_device(device, advertisement_data):
+def _filter_device(device, advertisement_data):
     if not device.name:
         return False
     result = device.name.startswith(name_prefix)
@@ -23,12 +23,39 @@ def filter_device(device, advertisement_data):
         logger.debug(f"found device: {device}, {advertisement_data}")
     return result
 
+async def _read_etag(client):
+    host_epoch = int(round(time.time()))
+
+    # read current time
+    value = await client.read_gatt_char(normalize_uuid_16(0xFFF1))
+    epoch = int.from_bytes(value, byteorder="little", signed=False)
+
+    # read time zone
+    value = await client.read_gatt_char(normalize_uuid_16(0xFFF2))
+    tz_min = int.from_bytes(value, byteorder="little", signed=True)
+    logger.info(
+        f"# host ts: {host_epoch}, etag ts: {epoch}, diff ({epoch - host_epoch})s, tz: {tz_min // 60}h"
+    )
+
+    # battery
+    value = await client.read_gatt_char(normalize_uuid_16(0xFFF3))
+    battery = int.from_bytes(value, byteorder="little", signed=False)
+
+    # temperature
+    value = await client.read_gatt_char(normalize_uuid_16(0xFFF4))
+    temp = int.from_bytes(value, byteorder="little", signed=True)
+    logger.info(f"# battery: {battery}mV, temperature: {temp}°C")
+
+    # RTC collaborate
+    value = await client.read_gatt_char(normalize_uuid_16(0xFFF5))
+    rtc = int.from_bytes(value, byteorder="little", signed=False)
+    logger.info(f"# rtc: {rtc}")
 
 async def run_ble_client(timeout=30):
     logger.info("starting scan...")
 
     device = await BleakScanner.find_device_by_filter(
-        filterfunc=filter_device,
+        filterfunc=_filter_device,
         timeout=timeout,
     )
     if device is None:
@@ -40,48 +67,7 @@ async def run_ble_client(timeout=30):
     async with BleakClient(device) as client:
         logger.info("connected")
 
-        host_epoch = int(round(time.time()))
-
-        # read current time
-        value = await client.read_gatt_char(normalize_uuid_16(0xFFF1))
-        epoch = int.from_bytes(value, byteorder="little", signed=False)
-
-        # read time zone
-        value = await client.read_gatt_char(normalize_uuid_16(0xFFF2))
-        tz_min = int.from_bytes(value, byteorder="little", signed=True)
-        logger.info(f"# host time: {host_epoch}, diff ({epoch - host_epoch}) seconds.")
-        logger.info(f"# etag time: {epoch}, tz: {tz_min} minutes of UTC.")
-
-        # # Ensure the device's service list is fully populated
-        # await client.get_services()
-
-        # logger.debug("reading characteristics...")
-
-        # # read current time
-        # chr = await epd_service.get_characteristic("fff1").read_value()
-        # epoch = int.from_bytes(chr, byteorder="little", signed=False)
-
-        # # read time zone
-        # chr = await epd_service.get_characteristic("fff2").read_value()
-        # tz_min = int.from_bytes(chr, byteorder="little", signed=True)
-
-        # host_epoch = int(round(time.time()))
-        # logger.info(f"# host time: {host_epoch}, diff ({epoch - host_epoch}) seconds.")
-        # logger.info(f"# etag time: {epoch}, tz: {tz_min} minutes of UTC.")
-
-        # # battery
-        # chr = await epd_service.get_characteristic("fff3").read_value()
-        # batt = int.from_bytes(chr, byteorder="little", signed=False)
-
-        # # Temperature
-        # chr = await epd_service.get_characteristic("fff4").read_value()
-        # temp = int.from_bytes(chr, byteorder="little", signed=True)
-        # logger.info(f"# etag sensor: battery({batt}mv), temperature({temp}'C).")
-
-        # # RTC Collaborate
-        # chr = await epd_service.get_characteristic("fff5").read_value()
-        # rtc_collab = int.from_bytes(chr, byteorder="little", signed=True)
-        # logger.info(f"# rtc collab: {rtc_collab} every 1 second.")
+        await _read_etag(client)
 
         logger.info("disconnection...")
         await client.disconnect()
