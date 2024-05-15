@@ -51,6 +51,13 @@ async def _read_etag(client):
     rtc = int.from_bytes(value, byteorder="little", signed=False)
     logger.info(f"# rtc: {rtc}")
 
+async def _set_time(client):
+    epoch = int(round(time.time()))
+    logger.info(f"setting time: {epoch}")
+
+    # set current time
+    await client.write_gatt_char(normalize_uuid_16(0xFFF1), epoch.to_bytes(4, byteorder="little"))
+
 async def run_ble_client(timeout=30):
     logger.info("starting scan...")
 
@@ -67,7 +74,8 @@ async def run_ble_client(timeout=30):
     async with BleakClient(device) as client:
         logger.info("connected")
 
-        await _read_etag(client)
+        # await _read_etag(client)
+        await _set_time(client)
 
         logger.info("disconnection...")
         await client.disconnect()
