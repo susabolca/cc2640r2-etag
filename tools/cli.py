@@ -58,6 +58,11 @@ async def _set_time(client):
     # set current time
     await client.write_gatt_char(normalize_uuid_16(0xFFF1), epoch.to_bytes(4, byteorder="little"))
 
+async def _change_mode(client, mode: int):
+    # change mode
+    data = [2, mode]
+    await client.write_gatt_char(normalize_uuid_16(0xFFFE), bytes(data))
+
 async def run_ble_client(timeout=30):
     logger.info("starting scan...")
 
@@ -75,7 +80,8 @@ async def run_ble_client(timeout=30):
         logger.info("connected")
 
         # await _read_etag(client)
-        await _set_time(client)
+        # await _set_time(client)
+        await _change_mode(client, 0)
 
         logger.info("disconnection...")
         await client.disconnect()
