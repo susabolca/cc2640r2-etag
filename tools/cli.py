@@ -60,7 +60,37 @@ async def _set_time(client):
 
 async def _change_mode(client, mode: int):
     # change mode
-    data = [2, mode]
+    await _do_cmd(client, 2, mode)
+
+"""
+EPD_CMD_CLR: 1,
+EPD_CMD_MODE: 2,
+EPD_CMD_BUF: 3,
+EPD_CMD_BUF_CONT: 4,
+EPD_CMD_LUT: 5,
+EPD_CMD_RST: 6,
+EPD_CMD_BW: 7,
+EPD_CMD_RED: 8,
+EPD_CMD_DP: 9,
+EPD_CMD_FILL: 10,
+
+EPD_CMD_BUF_PUT: 11,
+EPD_CMD_BUF_GET: 12,
+EPD_CMD_SNV_WRITE: 13,
+EPD_CMD_SNV_READ: 14,
+
+EPD_CMD_SAVE_CFG: 15,
+"""
+async def _do_cmd(client, cmd, payload):
+    data = [cmd] 
+
+    if cmd == 2:
+        if payload not in [0, 1]:
+            raise Exception(f"unsupported mode: {payload}")
+        data.append(payload)
+    else:
+        raise Exception(f"unsupported cmd: {cmd}, payload: {payload}")
+
     await client.write_gatt_char(normalize_uuid_16(0xFFFE), bytes(data))
 
 async def run_ble_client(timeout=30):
