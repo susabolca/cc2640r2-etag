@@ -133,7 +133,7 @@ def _image_to_raw_data(image_path):
     logger.debug(f"processing image: {image_path}")
     fp = resize_image(image_path, 296, 128)
     logger.debug(f"resized image: {fp}")
-    fp = remap_image(fp)
+    fp = remap_image(fp, dither=Image.Dither.NONE)
     logger.debug(f"remapped image: {fp}")
 
     img = Image.open(fp).convert("RGB")
@@ -214,7 +214,7 @@ async def run_ble_client(timeout=30):
         # await _set_time(client)
         # await _change_mode(client, 1)
         # await _upload_image_raw_data(client, test_bw_data, test_red_data)
-        await _upload_image_path(client, "/Users/rocry/Downloads/HD-wallpaper-goku-black-and-white-anime-dbs-dbz-dragonball-dragonballsuper-dragonballz-red-supersaiyan-vegeta.jpg")
+        await _upload_image_path(client, "/Users/rocry/Downloads/Dragon_Ball_Dragon_Ball_Z_TV_Son_Goku_Super_Saiyan-790454.jpg")
 
         logger.info("disconnection...")
         await client.disconnect()

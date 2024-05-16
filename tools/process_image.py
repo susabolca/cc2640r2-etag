@@ -69,7 +69,10 @@ PALETTE_BWR =  [
 
 # remap the image to the given palette
 # convert input.jpg -dither FloydSteinberg -define dither:diffusion-amount=85% -remap palette.png bmp:output.bmp
-def remap_image(input_path: str, palette: [int] = None, output_path: str = None) -> str:
+def remap_image(
+    input_path: str, palette: [int] = None, output_path: str = None,
+    dither=Image.Dither.FLOYDSTEINBERG,
+    ) -> str:
     if palette is None:
         palette = PALETTE_BWR
     if output_path is None:
@@ -88,7 +91,7 @@ def remap_image(input_path: str, palette: [int] = None, output_path: str = None)
         # Convert the original image to 'P' mode with our custom palette.
         # The .quantize() method maps colors to the nearest color in the palette.
         # You can play around with the 'dither' and 'colors' parameters if necessary.
-        converted_image = original_image.quantize(palette=palette_image)
+        converted_image = original_image.quantize(palette=palette_image, dither=dither)
 
         # Save or display your image
         converted_image.save(output_path)
