@@ -118,5 +118,57 @@ def remap_image(
     # rgb_image = converted_image.convert("RGB")
 
 
+# convert image to bwr data, specific for BWR EPD
+def image_to_bwr_data(logger, image_path: str, dither=Image.Dither.FLOYDSTEINBERG):
+    logger.debug(f"processing image: {image_path}")
+    fp = resize_image(image_path, 296, 128)
+    logger.debug(f"resized image: {fp}")
+    fp = remap_image(fp, dither=dither)
+    logger.debug(f"remapped image: {fp}")
+
+    img = Image.open(fp).convert("RGB")
+    width, height = img.size
+    bw, red = [], []
+
+    results = set()
+    # Process pixels
+    logger.debug(f"generate bw/red data: {width}x{height}")
+    for y in range(0, height, 8):
+        for x in range(width):
+            # logger.debug(f"processing pixel: {x}, {y}")
+            for i in range(8):
+                r, g, b = img.getpixel((x, y + i))
+                results.add((r, g, b))
+                # three possibilities: black, white, red
+                # black: 0x00, 0x00, 0x00
+                # red: 0xff, 0x00, 0x00
+                # white: 0xff, 0xff, 0xff
+                if r == 0x00 and g == 0x00 and b == 0x00:
+                    # black
+                    bw.append(0)
+                    red.append(0)
+                elif r == 0xFF and g == 0x00 and b == 0x00:
+                    # red
+                    red.append(1)
+                    bw.append(1)
+                elif r == 0xFF and g == 0xFF and b == 0xFF:
+                    # white
+                    bw.append(1)
+                    red.append(0)
+                else:
+                    raise Exception(f"invalid pixel: {r}, {g}, {b}")
+
+    # merge every 8 pixels into a byte
+    bw = [
+        int("".join(str(bit) for bit in bw[i : i + 8]), 2) for i in range(0, len(bw), 8)
+    ]
+    red = [
+        int("".join(str(bit) for bit in red[i : i + 8]), 2)
+        for i in range(0, len(red), 8)
+    ]
+    logger.debug(f"unique colors: {results}")
+    return bw, red
+
+
 if __name__ == "__main__":
     fire.Fire()
