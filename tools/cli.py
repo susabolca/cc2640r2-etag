@@ -166,13 +166,13 @@ class CLI(object):
     # image coule be one of the following:
     # 1. image file path
     # 2. image url
-    async def upload_image(self, image: str):
+    async def upload_image(self, image: str, width: int = 296, height: int = 152):
         async with self._ble_client() as client:
             from process_image import download_image_if_needed, image_to_bwr_data
 
             image_path = download_image_if_needed(image)
             # convert 6608697102119889260_296x152.jpg -dither FloydSteinberg -define dither:diffusion-amount=85% -remap palette.png bmp:output.bmp
-            bw, red = image_to_bwr_data(self._logger, image_path)
+            bw, red = image_to_bwr_data(self._logger, image_path, width=width, height=height)
             await self._upload_image_bwr_data(client, bw, red)
 
 

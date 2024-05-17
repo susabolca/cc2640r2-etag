@@ -119,9 +119,15 @@ def remap_image(
 
 
 # convert image to bwr data, specific for BWR EPD
-def image_to_bwr_data(logger, image_path: str, dither=Image.Dither.FLOYDSTEINBERG):
+def image_to_bwr_data(
+    logger,
+    image_path: str,
+    width: int,
+    height: int,
+    dither=Image.Dither.FLOYDSTEINBERG,
+):
     logger.debug(f"processing image: {image_path}")
-    fp = resize_image(image_path, 296, 128)
+    fp = resize_image(image_path, width, height)
     logger.debug(f"resized image: {fp}")
     fp = remap_image(fp, dither=dither)
     logger.debug(f"remapped image: {fp}")
