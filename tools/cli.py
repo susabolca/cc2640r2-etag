@@ -1,6 +1,6 @@
 import argparse
 import asyncio
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 import logging
 import time
 import fire
@@ -48,9 +48,9 @@ async def _set_time(logger, client):
     )
 
 
-async def _change_mode(client, mode: int):
+async def _change_mode(logger, client, mode: int):
     # change mode
-    await _do_cmd(client, 2, mode)
+    await _do_cmd(logger, client, 2, mode)
 
 
 EPD_CMD_CLR = 1
@@ -96,17 +96,17 @@ async def _do_cmd(logger, client, cmd, payload=None):
 
 
 async def _upload_image_raw_data(logger, client, bw_data, red_data):
-    await _do_cmd(client, EPD_CMD_RST)
+    await _do_cmd(logger, client, EPD_CMD_RST)
     time.sleep(2)
 
     if bw_data:
-        await _do_cmd(client, EPD_CMD_BUF, bw_data)
-        await _do_cmd(client, EPD_CMD_BW)
+        await _do_cmd(logger, client, EPD_CMD_BUF, bw_data)
+        await _do_cmd(logger, client, EPD_CMD_BW)
     if red_data:
-        await _do_cmd(client, EPD_CMD_BUF, red_data)
-        await _do_cmd(client, EPD_CMD_RED)
+        await _do_cmd(logger, client, EPD_CMD_BUF, red_data)
+        await _do_cmd(logger, client, EPD_CMD_RED)
     # display with lut 0
-    await _do_cmd(client, EPD_CMD_DP, 0)
+    await _do_cmd(logger, client, EPD_CMD_DP, 0)
 
     time.sleep(15)
 
@@ -168,9 +168,9 @@ def _image_to_raw_data(logger, image_path):
 class CLI(object):
     def __init__(
         self,
-        name_prefix="C26_b108",
+        name_prefix="C26_",
         log_level=logging.DEBUG,
-        timeout=10,
+        timeout=30,
     ):
         self.name_prefix = name_prefix
         self._logger = self._setup_logger(log_level)
@@ -193,7 +193,7 @@ class CLI(object):
         logger.level = log_level
         return logger
 
-    @contextmanager
+    @asynccontextmanager
     async def _ble_client(self):
         self._logger.info("starting scan...")
 
