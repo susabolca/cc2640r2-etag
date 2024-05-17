@@ -178,9 +178,7 @@ class CLI(object):
 
             image_path = download_image_if_needed(image)
             # convert 6608697102119889260_296x152.jpg -dither FloydSteinberg -define dither:diffusion-amount=85% -remap palette.png bmp:output.bmp
-            bw, red = image_to_bwr_data(
-                self._logger, image_path, width=width, height=height
-            )
+            bw, red = image_to_bwr_data(image_path, width=width, height=height)
             await self._upload_image_bwr_data(client, bw, red)
 
 

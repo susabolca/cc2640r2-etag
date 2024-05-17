@@ -120,59 +120,49 @@ def remap_image(
 
 # convert image to bwr data, specific for BWR EPD
 def image_to_bwr_data(
-    logger,
     image_path: str,
     width: int,
     height: int,
     dither=Image.Dither.FLOYDSTEINBERG,
 ):
-    logger.debug(f"processing image: {image_path}")
+    # logger.debug(f"processing image: {image_path}")
     fp = resize_image(image_path, width, height)
-    logger.debug(f"resized image: {fp}")
+    # logger.debug(f"resized image: {fp}")
     fp = remap_image(fp, dither=dither)
-    logger.debug(f"remapped image: {fp}")
+    # logger.debug(f"remapped image: {fp}")
 
     img = Image.open(fp).convert("RGB")
     width, height = img.size
     bw, red = [], []
 
-    results = set()
     # Process pixels
-    logger.debug(f"generate bw/red data: {width}x{height}")
+    # logger.debug(f"generate bw/red data: {width}x{height}")
     for y in range(0, height, 8):
         for x in range(width):
             # logger.debug(f"processing pixel: {x}, {y}")
+            bw_byte, red_byte = 0, 0
             for i in range(8):
+                if y + i >= height:
+                    break
                 r, g, b = img.getpixel((x, y + i))
-                results.add((r, g, b))
                 # three possibilities: black, white, red
                 # black: 0x00, 0x00, 0x00
                 # red: 0xff, 0x00, 0x00
                 # white: 0xff, 0xff, 0xff
                 if r == 0x00 and g == 0x00 and b == 0x00:
-                    # black
-                    bw.append(0)
-                    red.append(0)
+                    # black, bw=0, red=0
+                    pass
                 elif r == 0xFF and g == 0x00 and b == 0x00:
-                    # red
-                    red.append(1)
-                    bw.append(1)
+                    # red, bw=1, red=1
+                    bw_byte |= 1 << (8 - i - 1)
+                    red_byte |= 1 << (8 - i - 1)
                 elif r == 0xFF and g == 0xFF and b == 0xFF:
-                    # white
-                    bw.append(1)
-                    red.append(0)
+                    # white, bw=1, red=0
+                    bw_byte |= 1 << (8 - i - 1)
                 else:
                     raise Exception(f"invalid pixel: {r}, {g}, {b}")
-
-    # merge every 8 pixels into a byte
-    bw = [
-        int("".join(str(bit) for bit in bw[i : i + 8]), 2) for i in range(0, len(bw), 8)
-    ]
-    red = [
-        int("".join(str(bit) for bit in red[i : i + 8]), 2)
-        for i in range(0, len(red), 8)
-    ]
-    logger.debug(f"unique colors: {results}")
+            bw.append(bw_byte)
+            red.append(red_byte)
     return bw, red
 
 
