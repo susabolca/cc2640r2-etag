@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from contextlib import contextmanager
 import logging
 import time
 import fire
@@ -221,6 +222,65 @@ async def run_ble_client(timeout=30):
 
     logger.info("disconnected")
 
+class CLI(object):
+    def __init__(
+        self, 
+        name_prefix="C26_b108",
+        log_level=logging.DEBUG,
+        timeout=10,
+    ):
+        self.name_prefix = name_prefix
+        self._logger = self._setup_logger(log_level)
+        self.timeout = timeout
+
+    def _setup_logger(self, log_level):
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s %(name)s - [%(levelname)s] > %(message)s"
+        )
+        logger = logging.getLogger(__name__)
+        logger.level = log_level
+        return logger
+
+    @contextmanager
+    async def _ble_client(self):
+        logger.info("starting scan...")
+
+        device = await BleakScanner.find_device_by_filter(
+            filterfunc=_filter_device,
+            timeout=self.timeout,
+        )
+        if device is None:
+            self._logger.error(f"could not find device with name: {self.name_prefix}")
+            raise Exception("device not found")
+
+        self._logger.info("connecting to device...")
+
+        async with BleakClient(device) as client:
+            self._logger.info(f"connected to: {device.name if device.name else device.address}")
+            yield client
+            self._logger.info("disconnection...")
+            await client.disconnect()
+
+        self._logger.info("disconnected")
+    
+    async def read_etag(self):
+        async with self._ble_client() as client:
+            await _read_etag(client)
+        
+    async def set_time(self):
+        async with self._ble_client() as client:
+            await _set_time(client)
+    
+    async def change_mode(self, mode: int):
+        async with self._ble_client() as client:
+            await _change_mode(client, mode)
+
+    async def upload_image(self, image: str):
+        async with self._ble_client() as client:
+            # convert 6608697102119889260_296x152.jpg -dither FloydSteinberg -define dither:diffusion-amount=85% -remap palette.png bmp:output.bmp
+            bw, red = _image_to_raw_data(image)
+            await _upload_image_raw_data(client, bw, red)
+
 
 if __name__ == "__main__":
-    fire.Fire()
+    fire.Fire(CLI)
