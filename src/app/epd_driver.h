@@ -4,10 +4,8 @@
 #include <stdint.h>     // uint8_t
 
 //#define EPD_2IN13_SSD1680
+//#define EPD_2IN13_SSD1680_BW
 //#define EPD_2IN9_SSD1680A
-#if !defined(EPD_2IN13_SSD1680) && !defined(EPD_2IN9_SSD1680A)
-#error "Please select a EPD device"
-#endif
 
 // pin configuration
 #define EPD_BUSY_PIN            IOID_10
