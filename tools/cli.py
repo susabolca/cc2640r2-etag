@@ -274,11 +274,16 @@ class CLI(object):
     async def change_mode(self, mode: int):
         async with self._ble_client() as client:
             await _change_mode(client, mode)
-
+    
+    # image coule be one of the following:
+    # 1. image file path
+    # 2. image url
     async def upload_image(self, image: str):
         async with self._ble_client() as client:
+            from process_image import download_image_if_needed
+            image_path = download_image_if_needed(image)
             # convert 6608697102119889260_296x152.jpg -dither FloydSteinberg -define dither:diffusion-amount=85% -remap palette.png bmp:output.bmp
-            bw, red = _image_to_raw_data(image)
+            bw, red = _image_to_raw_data(image_path)
             await _upload_image_raw_data(client, bw, red)
 
 
