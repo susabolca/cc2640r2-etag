@@ -5,6 +5,8 @@ import logging
 import time
 import fire
 
+from rich.progress import track
+
 
 from bleak import BleakClient, BleakScanner
 from bleak.uuids import normalize_uuid_16, uuid16_dict
@@ -92,7 +94,7 @@ class CLI(object):
             pass
         elif cmd == EPD_CMD_BUF:
             chunk_size = 60
-            for i in range(0, len(payload), chunk_size):
+            for i in track(range(0, len(payload), chunk_size), "Sending buf..."):
                 chunk = payload[i : i + chunk_size]
                 cmd = cmd if i == 0 else EPD_CMD_BUF_CONT
                 # logger.debug(f"sending chunk={i+len(chunk)} of data={len(payload)}")
