@@ -286,6 +286,10 @@ int8_t RTC_GetCollaborate( void )
 
 #include "epd_2in13.c"
 
+#elif defined(EPD_2IN13_SSD1680_BW)
+
+#include "epd_2in13_bw.c"
+
 #elif defined(EPD_2IN9_SSD1680A)
 
 #include "epd_2in9.c"
@@ -464,7 +468,7 @@ void EPD_Init()
     GPIOHandle = PIN_open(&GPIOState, GPIOTable);      
 
     // test LUT size, different EPD has different LUT size.
-    //lut_size = EPD_LUT_Detect();
+    //lut_size = EPD_SSD_LutDetect();
 
 #if 0
     uint8_t buf[16] = {'a', 'b', 'c', 'd', };
