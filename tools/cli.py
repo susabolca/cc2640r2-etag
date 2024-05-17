@@ -5,6 +5,7 @@ import logging
 import time
 import fire
 
+
 from bleak import BleakClient, BleakScanner
 from bleak.uuids import normalize_uuid_16, uuid16_dict
 
@@ -24,6 +25,7 @@ EPD_CMD_BUF_GET = 12
 EPD_CMD_SNV_WRITE = 13
 EPD_CMD_SNV_READ = 14
 EPD_CMD_SAVE_CFG = 15
+
 
 class CLI(object):
     def __init__(
@@ -67,12 +69,12 @@ class CLI(object):
 
         self._logger.info("connecting to device...")
 
-        async with BleakClient(device) as client:
+        async with BleakClient(device, timeout=self.timeout) as client:
             self._logger.info(
                 f"connected to: {device.name if device.name else device.address}"
             )
             yield client
-            self._logger.info("disconnection...")
+            self._logger.info("disconnecting...")
             await client.disconnect()
 
         self._logger.info("disconnected")
@@ -152,14 +154,18 @@ class CLI(object):
     async def set_time(self):
         async with self._ble_client() as client:
             epoch = int(round(time.time()))
-            logger.info(f"setting time: {epoch}")
+            self._logger.info(f"setting time: {epoch}")
 
             # set current time
             await client.write_gatt_char(
                 normalize_uuid_16(0xFFF1), epoch.to_bytes(4, byteorder="little")
             )
 
+    # 0: Date mode
+    # 1: Image mode
     async def change_mode(self, mode: int):
+        if mode not in [0, 1]:
+            raise ValueError(f"invalid mode: {mode}")
         async with self._ble_client() as client:
             await self._do_cmd(client, EPD_CMD_MODE, mode)
 
@@ -172,7 +178,9 @@ class CLI(object):
 
             image_path = download_image_if_needed(image)
             # convert 6608697102119889260_296x152.jpg -dither FloydSteinberg -define dither:diffusion-amount=85% -remap palette.png bmp:output.bmp
-            bw, red = image_to_bwr_data(self._logger, image_path, width=width, height=height)
+            bw, red = image_to_bwr_data(
+                self._logger, image_path, width=width, height=height
+            )
             await self._upload_image_bwr_data(client, bw, red)
 
 
