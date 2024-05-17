@@ -12,19 +12,22 @@ def generate_temp_output_path(input_path: str, ext: str = None) -> str:
         ext = f".{ext}"
     # /tmp/blabla.ext
     import tempfile
+
     return os.path.join(tempfile.gettempdir(), f"{name_without_ext}{ext}")
+
 
 # image could be filepath or image url
 def download_image_if_needed(image: str) -> str:
     if image.startswith("http"):
         import requests
+
         response = requests.get(image)
         output_path = generate_temp_output_path(image)
         with open(output_path, "wb") as f:
             f.write(response.content)
         return output_path
-    return image 
-    
+    return image
+
 
 # resize the image to the given width and height, aspect to fill
 def resize_image(
@@ -81,9 +84,11 @@ PALETTE_BWR =  [
 # remap the image to the given palette
 # convert input.jpg -dither FloydSteinberg -define dither:diffusion-amount=85% -remap palette.png bmp:output.bmp
 def remap_image(
-    input_path: str, palette: [int] = None, output_path: str = None,
+    input_path: str,
+    palette: [int] = None,
+    output_path: str = None,
     dither=Image.Dither.FLOYDSTEINBERG,
-    ) -> str:
+) -> str:
     if palette is None:
         palette = PALETTE_BWR
     if output_path is None:
