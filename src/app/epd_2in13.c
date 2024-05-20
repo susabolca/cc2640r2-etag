@@ -331,8 +331,9 @@ void EPD_SSD_Update_Clock(void)
 
     // temperature
     epd_temperature = EPD_2IN13_ReadTemp();
-    System_snprintf(buf, 32, "%3uc", epd_temperature);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 158, 118, buf, 1);
+    char fmte[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
+    System_snprintf(buf, 32, fmte, epd_temperature);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 154, 118, buf, 1);
 
     // battery
     uint8_t v = EPD_BATT_Percent(); 
