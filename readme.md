@@ -3,13 +3,20 @@
 cc2640r2 电子标签改电子时钟固件.
 > 显示时钟日历，或静态图片。
 
-目前支持,
-* cc2640r2l_2in13_ssd1680_250x122
-* cc2640r2l_2in9_ssd1680a_296x128 **主要支持**
+## 目前支持,
+* BWR
+    - cc2640r2l_2in13_ssd1680_250x122
+    - cc2640r2l_2in9_ssd1680a_296x128 **主要支持**
 
-![cc2640r2l_2in9_ssd1680a_296x128](doc/pic1.jpg)
+    ![cc2640r2l_2in9_ssd1680a_296x128](doc/pic1.jpg)
+
+* BW 
+    - cc2640r2l_2in13_ssd1680_bw_250x122
+
+    ![cc2640r2l_2in13_ssd1680_bw_250x122](doc/2in13_bw.jpg)
 
 单节或者双节 CR2450 电池供电.
+
 
 ### 8级灰度支持
 
@@ -18,6 +25,7 @@ cc2640r2 电子标签改电子时钟固件.
 ![8级灰度](doc/pic_gray8.jpg)
 
 tools 下提供 bwr_gray8.act 调色板，便于在 Photoshop 里生成 BWR 色彩的8级灰度图像。
+
 
 ## 编译
 
@@ -29,13 +37,16 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 
 ## 烧写
 
-电子标签为 cjtag 2 wire, 需要 xds 100v3 以上 或者 jlink v10 以上烧写器.
+电子标签为 cjtag 2 wire, 需要 xds 100v3 以上 或者 jlink v10 以上仿真器.
 
-> 低成本也可选自制 xds110 烧写器 (功能和官方一样)
+> 低成本也可选自制 xds110 仿真器 (功能和官方一样)
 
 ![download](doc/pic4.jpg)
 
-### cc2640r2l_2in9_ssd1680a_296x128
+
+
+### Pin 定义
+- cc2640r2l_2in9_ssd1680a_296x128
 
 ![cjtag_2in9](doc/pic2.jpg)
 
@@ -43,16 +54,18 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 |-|-|
 |1|GND|
 |2|VCC|
-|3|TCLK|
+|3|TCK|
 |4|TMS|
 |7|NRST|
 
 
-### cc2640r2l_2in13_ssd1680_250x122
+- cc2640r2l_2in13_ssd1680_250x122
+- cc2640r2l_2in13_ssd1680_bw_250x122
 
 ![cjtag_2in13](doc/pic3.jpg)
 
-PIN 定义同上
+PIN 定义同上。
+
 
 ### 保留 SNV 数据
 
