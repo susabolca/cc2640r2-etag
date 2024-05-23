@@ -57,6 +57,7 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 
 ### Pin 定义
 - cc2640r2l_2in9_ssd1680a_296x128
+- cc2640r2l_2in9_ssd1680_bw_296x128
 
 ![cjtag_2in9](doc/pic2.jpg)
 
