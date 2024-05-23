@@ -24,6 +24,8 @@ static PIN_Config GPIOTable[] = {
   EPD_CS_PIN    | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
   EPD_SCL_PIN   | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
   EPD_SDA_PIN   | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
+  EPD_LED1_PIN  | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
+  EPD_LED2_PIN  | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,
   PIN_TERMINATE
 };
 
@@ -201,6 +203,24 @@ void EPD_SSD_WaitBusy(uint32_t ms)
     }
 }
 
+// EPD Leds
+void LED_Blink(uint8_t io, uint16_t ms)
+{
+    DEV_Digital_Write(io, 0);
+    DEV_Delay_ms(ms);
+    DEV_Digital_Write(io, 1);
+}
+
+void LED_On(uint8_t io)
+{
+    DEV_Digital_Write(io, 0);
+}
+
+void LED_Off(uint8_t io)
+{
+    DEV_Digital_Write(io, 1);
+}
+
 // guess the LUT size
 int EPD_SSD_LutDetect()
 {
@@ -293,6 +313,10 @@ int8_t RTC_GetCollaborate( void )
 #elif defined(EPD_2IN9_SSD1680A)
 
 #include "epd_2in9.c"
+
+#elif defined(EPD_2IN9_SSD1680_BW)
+
+#include "epd_2in9_bw.c"
 
 #else
 
@@ -466,6 +490,8 @@ int EPD_SNV_SaveLut(int index, const uint8_t *lut, int len)
 void EPD_Init()
 {
     GPIOHandle = PIN_open(&GPIOState, GPIOTable);      
+    
+    LED_Blink(EPD_LED1_PIN, 10);
 
     // test LUT size, different EPD has different LUT size.
     //lut_size = EPD_SSD_LutDetect();
@@ -490,7 +516,7 @@ int EPD_Update()
 {
     // update battery level
     epd_battery = MIN(epd_battery, AONBatMonBatteryVoltageGet()); 
-    
+
     // update Display
     return EPD_SSD_Update();
 }

@@ -3,17 +3,27 @@
 cc2640r2 电子标签改电子时钟固件.
 > 显示时钟日历，或静态图片。
 
-## 目前支持,
-* BWR
+## 目前支持
+
+* BWR (黑白红)
+
     - cc2640r2l_2in13_ssd1680_250x122
+    
+    ![cc2640r2l_2in13_ssd1680_250x122](doc/2in13_bwr.jpg)
+    
     - cc2640r2l_2in9_ssd1680a_296x128 **主要支持**
 
-    ![cc2640r2l_2in9_ssd1680a_296x128](doc/pic1.jpg)
+    ![cc2640r2l_2in9_ssd1680a_296x128](doc/2in9_bwr.jpg)
 
-* BW 
+* BW (黑白)
+
     - cc2640r2l_2in13_ssd1680_bw_250x122
 
     ![cc2640r2l_2in13_ssd1680_bw_250x122](doc/2in13_bw.jpg)
+    
+    - cc2640r2l_2in9_ssd1680_bw_296x128
+
+    ![cc2640r2l_2in9_ssd1680_bw_250x122](doc/2in9_bw.jpg)
 
 单节或者双节 CR2450 电池供电.
 
@@ -47,6 +57,7 @@ SDK: simplelink_cc2640r2_sdk_1_40_00_45
 
 ### Pin 定义
 - cc2640r2l_2in9_ssd1680a_296x128
+- cc2640r2l_2in9_ssd1680_bw_296x128
 
 ![cjtag_2in9](doc/pic2.jpg)
 

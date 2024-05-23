@@ -50,14 +50,14 @@ extern const uint8_t ucMirror[];
 static const uint8_t lut_fast_bw[] = {
 //  VS [0-11] phase [ABCD]
 //     0     1     2     3     4     5     6     7     8     9    10    11
-    B___, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT0 B
-    _W__, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT1 W
+    B___, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT0 B
+    _W__, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT1 W
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT2 R
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT3 NC?
+    0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT3 NC?
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT4 VCOM
 // 60: 
 //  TP A, TP B, SRAB, TP C, TP D, SRCD,   RP
-    0x04, 0x10, 0x03, 0x00, 0x00, 0x00, 0x02,   // 0
+    0x05, 0x10, 0x06, 0x00, 0x00, 0x00, 0x00,   // 0
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 1
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 2
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 3
@@ -70,7 +70,7 @@ static const uint8_t lut_fast_bw[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 10
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 11
 // 144: FR  25-200Hz
-    0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
 // 150: XON
     0x00, 0x00, 0x00,
 // 153:
@@ -104,7 +104,7 @@ static const uint8_t lut_full_bwr[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 10
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 11
 // 144: FR  25-200Hz
-    0x44, 0x40, 0x00, 0x00, 0x00, 0x00,
+    0x22, 0x20, 0x00, 0x00, 0x00, 0x00,
 // 150: XON
     0x00, 0x00, 0x00,
 // 153:
@@ -138,17 +138,33 @@ static void EPD_2IN13_Lut(const unsigned char *lut)
     EPD_SSD_SendData(*(lut+158));
 }
 
+static void EPD_2IN13_Lut_ById(int id)
+{
+#if 0
+    if (id == 1) {
+        EPD_2IN13_Lut(lut_fast_bw);
+    } 
+#endif    
+    EPD_2IN13_Lut(lut_full_bwr);
+}
+
+static void EPD_2IN13_SoftReset()
+{
+    EPD_SSD_SendCommand(0x12); // soft reset
+    EPD_SSD_WaitBusy(100);
+}
+
 static int8_t EPD_2IN13_ReadTemp()
 {
     int8_t rc;
     
     // soft reset
-    EPD_SSD_SendCommand(0x12);
-    EPD_SSD_WaitBusy(100);
+    //EPD_SSD_SendCommand(0x12);
+    //EPD_SSD_WaitBusy(100);
 
     // Border Waveform
-    EPD_SSD_SendCommand(0x3C);
-    EPD_SSD_SendData(0x05);
+    //EPD_SSD_SendCommand(0x3C);
+    //EPD_SSD_SendData(0x05);
 
     // Temperature sensor control
     EPD_SSD_SendCommand(0x18);
@@ -274,7 +290,7 @@ void EPD_2IN13_Clear(void)
     // write white to ram
     EPD_2IN13_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
     EPD_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
-    EDP_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+    EPD_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
     // full display
     EPD_2IN13_Display(0xf7);
@@ -299,8 +315,14 @@ void EPD_SSD_Update_Clock(void)
         return;
     }
  
-    // full update on every hour.
-    bool full_upd = (clock_last > 60 || (l->tm_hour== 0 && l->tm_min == 0)) ? true : false;
+    //bool full_upd = (clock_last > 60 || (l->tm_hour== 0 && l->tm_min == 0)) ? true : false;
+    char upd_type = 2;  // 0: full, 1: fast, 2: partial
+    if (clock_last > 60 || (l->tm_hour== 0 && l->tm_min == 0)) {
+        upd_type = 0;
+    } 
+    else if (l->tm_min == 0 || l->tm_min == 30) {
+        upd_type = 1;
+    }
 
     // clock started.
     clock_last = l->tm_min;
@@ -360,26 +382,99 @@ void EPD_SSD_Update_Clock(void)
 
     // full or fast update 
     EPD_2IN13_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-    if (!full_upd) 
+    if (upd_type == 2) 
         EPD_2IN13_Lut(lut_fast_bw);
-    else 
+    else if (upd_type == 1) 
         EPD_2IN13_Lut(lut_full_bwr);
     EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
     EPD_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
     // show
-    EPD_2IN13_Display(0xc7);    // c7: by REG  f7: by OTP   b1: no display 
+    EPD_2IN13_Display(upd_type?0xc7:0xf7);    // c7: by REG  f7: by OTP   b1: no display 
     EPD_SSD_WaitBusy(15*1000);
     EPD_2IN13_Sleep();
     return;
 }
 
+void EPD_2IN13_Update_Image()
+{
+    //static uint8_t last_step = 0;
+    uint8_t step = epd_step;
+
+    switch (step) {
+        case EPD_CMD_CLR:
+            EPD_2IN13_Clear();
+            break;
+
+        case EPD_CMD_MODE:
+            EPD_2IN13_Clear();
+            break;
+
+        case EPD_CMD_RST: // reset
+            // wakeup EPD
+            EPD_SSD_Reset();
+            // soft reset
+            EPD_2IN13_SoftReset();
+            // ready BWR 
+            EPD_2IN13_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
+            break;
+            
+        case EPD_CMD_BW: // write BW ram
+            EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+            break;
+
+        case EPD_CMD_RED: // write Red ram
+            EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+            break;
+
+        case EPD_CMD_FILL: { // write ram with color
+            uint8_t color = epd_step_data[0];
+            if (color == 1) {   // red
+                memset(epd_buffer, 0xff, EPD_WIDTH*EPD_HEIGHT/8);
+                EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+            } else {
+                memset(epd_buffer, 0, EPD_WIDTH*EPD_HEIGHT/8);
+                EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+            }
+            break;
+        }
+
+        case EPD_CMD_DP: { // master
+            // display lut select
+            // TBD: only full display.
+            uint8_t dpm = 0; //epd_step_data[0];
+            if (dpm == 1) { // lut1
+                EPD_2IN13_Lut_ById(0);
+            } else if (dpm == 2) {  // lut2
+                EPD_2IN13_Lut_ById(1);
+            } else if (dpm == 3) {  // lut3
+                EPD_2IN13_Lut_ById(2);
+            } else if (dpm == 0xff) {   // user ble lut
+                EPD_2IN13_Lut(ble_data);
+            }
+            
+            // otherwise using full lut.
+            EPD_2IN13_Display(dpm ? 0xc7: 0xf7);    // fast display
+            EPD_SSD_WaitBusy(15 * 1000);
+            EPD_2IN13_Sleep();
+            break;
+        }
+    }
+
+    // done
+    if (step == epd_step) {
+        epd_step = EPD_CMD_NC;
+    }
+}
 int EPD_SSD_Update(void)
 {
-    EPD_SSD_Update_Clock();
+    if (epd_mode == EPD_MODE_IMG) {
+        EPD_2IN13_Update_Image();
+        // stop tick clock
+        return 0;
+    }
 
-    // as we only support clock for 2in13,
-    // need to return 1 to keep the timer running
+    EPD_SSD_Update_Clock();
     return 1;
 }
 
