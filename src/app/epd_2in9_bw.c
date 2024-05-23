@@ -1,8 +1,8 @@
-// EPD 2in13 SSD1680 250x122
+// EPD 2in9 SSD1680 298x128 BW
 
-#define EPD_WIDTH       250 
+#define EPD_WIDTH       296 
 #define EPD_HEIGHT      128
-#define EPD_PAD_LEFT    46
+#define EPD_PAD_LEFT    0 
 #define EPD_PAD_TOP     8
 
 #include <ti/drivers/PIN.h>
@@ -20,10 +20,10 @@
 
 // OBD
 #include "OneBitDisplay.h"
-#include "font64.h"
+#include "font16.h"
 #include "font24.h"
 #include "font24zh.h"
-#include "font16.h"
+#include "font80.h"
 
 // One Bit Display
 OBDISP obd = {0};
@@ -78,9 +78,9 @@ static const uint8_t lut_part_bw[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // LUT4 VCOM
 // 60: 
 //  TP A, TP B, SRAB, TP C, TP D, SRCD,   RP
-    0x06, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00,   // 0
+    0x0a, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00,   // 0
     0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00,   // 1
-    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 2
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 2
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 3
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 4
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 5
@@ -91,14 +91,14 @@ static const uint8_t lut_part_bw[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 10
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // 11
 // 144: FR  25-200Hz
-    0x22, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x44, 0x00, 0x00, 0x00, 0x00, 0x00,
 // 150: XON
     0x00, 0x00, 0x00,
 // 153:
 //  EOPT    VGH     VSH1    VSH2    VSL     VCOM
 //  3F      03      04                      2C
 //  22      -20v    15v     0v      -15v
-    0x22,   0x17,   0x41,   0x00,   0x32,   0x36    
+    0x22,   0x17,   0x2d,   0x00,   0x32,   0x36    
 };
 
 #else
@@ -125,7 +125,7 @@ static const uint8_t lut_part_bw[]= {
 };
 #endif
 
-static void EPD_2IN13_Lut(const unsigned char *lut)
+static void EPD_2IN9_Lut(const unsigned char *lut)
 {
     EPD_SSD_SendCommand(0x32);
     for(int i=0; i<153; i++) {
@@ -149,7 +149,7 @@ static void EPD_2IN13_Lut(const unsigned char *lut)
     EPD_SSD_SendData(*(lut+158));
 }
 
-static int8_t EPD_2IN13_ReadTemp()
+static int8_t EPD_2IN9_ReadTemp()
 {
     int8_t rc;
     
@@ -180,7 +180,7 @@ static int8_t EPD_2IN13_ReadTemp()
     return rc;
 }
 
-static void EPD_2IN13_LoadImage(uint8_t *image, int size, uint8_t cmd)
+static void EPD_2IN9_LoadImage(uint8_t *image, int size, uint8_t cmd)
 {
     EPD_SSD_SendCommand(cmd);
     for (int i = 0; i < size; i++) {
@@ -188,7 +188,7 @@ static void EPD_2IN13_LoadImage(uint8_t *image, int size, uint8_t cmd)
     }
 }
 
-static void EPD_2IN13_BW(int width, int height, int left, int top, bool is_full)
+static void EPD_2IN9_BW(int width, int height, int left, int top, bool is_full)
 {
     // left up corner
     int w0 = EPD_PAD_LEFT + left;
@@ -206,6 +206,7 @@ static void EPD_2IN13_BW(int width, int height, int left, int top, bool is_full)
     EPD_SSD_SendCommand(0x3C); 
     EPD_SSD_SendData(0x80);
 
+#if 1
     if (!is_full) {
         EPD_SSD_SendCommand(0x37);
         EPD_SSD_SendData(0x00);
@@ -224,6 +225,7 @@ static void EPD_2IN13_BW(int width, int height, int left, int top, bool is_full)
         EPD_SSD_SendCommand(0x20);
         EPD_SSD_WaitBusy(100);
     }
+#endif
 
     // Driver output control
     EPD_SSD_SendCommand(0x01);
@@ -248,11 +250,11 @@ static void EPD_2IN13_BW(int width, int height, int left, int top, bool is_full)
     EPD_SSD_SendData(w1 >> 8);
     
     // Temperature sensor control
-    EPD_SSD_SendCommand(0x18);
-    EPD_SSD_SendData(0x80);       // 80: internal sensor 48: external sensor
+    //EPD_SSD_SendCommand(0x18);
+    //EPD_SSD_SendData(0x80);       // 80: internal sensor 48: external sensor
 }
 
-void EPD_2IN13_WriteRam(uint8_t *image, int width, int height, int left, int top, uint8_t is_red)
+void EPD_2IN9_WriteRam(uint8_t *image, int width, int height, int left, int top, uint8_t is_red)
 {
     // data size in bytes
     int size = width*height/8;
@@ -270,16 +272,16 @@ void EPD_2IN13_WriteRam(uint8_t *image, int width, int height, int left, int top
 
     const uint8_t reg = is_red ? 0x26 : 0x24;     // BW: 0x24, Red: 0x26 
     if (image) {
-        EPD_2IN13_LoadImage(image, size, reg);
+        EPD_2IN9_LoadImage(image, size, reg);
     } else {
         EPD_SSD_SendCommand(reg);
         for (int i = 0; i < size; i++) {
-            EPD_SSD_SendData(0xff);
+            EPD_SSD_SendData(is_red?0x00:0xff);
         }
     }
 }
 
-void EPD_2IN13_Display(uint8_t reg)
+void EPD_2IN9_Display(uint8_t reg)
 {
     EPD_SSD_SendCommand(0x22);
     EPD_SSD_SendData(reg);
@@ -287,32 +289,32 @@ void EPD_2IN13_Display(uint8_t reg)
     //EPD_SSD_WaitBusy();
 }
 
-void EPD_2IN13_Sleep(void)
+void EPD_2IN9_Sleep(void)
 {
     EPD_SSD_SendCommand(0x10);    //enter deep sleep
     EPD_SSD_SendData(0x01);       // 01: mode 1, 11: mode 2
 }
 
 #if 0
-void EPD_2IN13_Clear(void)
+void EPD_2IN9_Clear(void)
 {
     // wakeup EPD
     EPD_SSD_Reset();
 
     // do reset
-    EPD_2IN13_SoftReset();
+    EPD_2IN9_SoftReset();
 
     // write white to ram
-    EPD_2IN13_BW(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-    EPD_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
-    EDP_2IN13_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+    EPD_2IN9_BW(EPD_WIDTH, EPD_HEIGHT, 0, 0);
+    EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+    EDP_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
     // full display
-    EPD_2IN13_Display(0xf7);
+    EPD_2IN9_Display(0xf7);
 
     // wait & sleep
     EPD_SSD_WaitBusy(15*1000);
-    EPD_2IN13_Sleep();
+    EPD_2IN9_Sleep();
 }
 #endif
 
@@ -349,50 +351,35 @@ void EPD_SSD_Update_Clock(void)
     obdCreateVirtualDisplay(&obd, EPD_WIDTH, EPD_HEIGHT, epd_buffer);
     obdFill(&obd, 0, 0);
 
-#if 0
-    // date
-    const char *wstr[]={"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-    System_snprintf(buf, 32, "%u-%02u-%02u %s", 1900+l->tm_year, l->tm_mon+1, l->tm_mday, wstr[l->tm_wday]);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 0, 24, buf, 1);
-#endif
-
     // BLE dev name
-#if 1    
     extern void getBleAdvName(char* buf);
     getBleAdvName(buf);
-#else    
-    extern uint8_t mac_address[6];
-    System_snprintf(buf, 32, "%02x%02x%02x", mac_address[3], mac_address[4], mac_address[5]);
-#endif    
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 118, buf, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 2, 128, buf, 1);
 
-#if 1
-    // temperature
-    epd_temperature = EPD_2IN13_ReadTemp();
-    char fmte[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
-    System_snprintf(buf, 32, fmte, epd_temperature);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 154, 118, buf, 1);
-
-    // battery
+    // battery voltage
     uint8_t v = EPD_BATT_Percent(); 
     System_snprintf(buf, 32, "%3u%%", v);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 200, 118, buf, 1);
-#else
-    System_snprintf(buf, 32, "%u", lut_size);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 158, 118, buf, 1);
-
-#endif
-    // time
-    System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
-    obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_64, 12, 28+70, buf, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 250, 128, buf, 1);
 
     // date
     System_snprintf(buf, 32, "%u-%02u-%02u", 1900+l->tm_year, l->tm_mon+1, l->tm_mday);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 0, 24, buf, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 2, 22, buf, 1);
 
     // week
-    char fmt[] = {0x37, 0x38, 0x30 + l->tm_wday, '\0'};   // chinese week day 
-    obdWriteStringCustom(&obd, (GFXfont *)&Hei24pt, 158, 21, fmt, 1);
+    {
+        char fmt[] = {0x37, 0x38, 0x30 + l->tm_wday, '\0'};   // chinese week day 
+        obdWriteStringCustom(&obd, (GFXfont *)&Hei24pt, 158, 20, fmt, 1);
+    }
+
+    // temp
+    epd_temperature = EPD_2IN9_ReadTemp();
+    const char fmt[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
+    System_snprintf(buf, 32, fmt, epd_temperature);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 236, 22, buf, 1);
+
+    // time
+    System_snprintf(buf, 32, "%02d:%02d", l->tm_hour, l->tm_min);
+    obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_80, 8, 24+80+5, buf, 1);
 
     // edian and invent 
     for (int i=0; i<sizeof(epd_buffer); i++) {
@@ -401,22 +388,22 @@ void EPD_SSD_Update_Clock(void)
     }
 
     // full or fast update 
-    EPD_2IN13_BW(EPD_WIDTH, EPD_HEIGHT, 0, 0, upd_type == 0);
+    EPD_2IN9_BW(EPD_WIDTH, EPD_HEIGHT, 0, 0, upd_type == 0);
     if (upd_type == 1) {
-        EPD_2IN13_Lut(lut_full_bw);
+        EPD_2IN9_Lut(lut_full_bw);
     } else if (upd_type == 2){
-        EPD_2IN13_Lut(lut_part_bw);
+        EPD_2IN9_Lut(lut_part_bw);
     }
 
-    EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+    EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
     if (upd_type != 2) {
-        EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+        EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
     }
 
     // show
-    EPD_2IN13_Display(upd_type==0?0xf7:0xcf);    // c7: by REG  f7: by OTP   b1: no display 
+    EPD_2IN9_Display(upd_type==0?0xf7:0xcf);    // c7: by REG  f7: by OTP   b1: no display
     EPD_SSD_WaitBusy(15*1000);
-    EPD_2IN13_Sleep();
+    EPD_2IN9_Sleep();
     return;
 }
 
@@ -425,7 +412,7 @@ void EPD_SSD_Update_Test(void)
     static uint8_t sec = 0;
     static uint8_t tick = 0;
 
-    if (++tick < 1) {
+    if (++tick < 3) {
         return;
     }
     tick = 0;
@@ -443,11 +430,11 @@ void EPD_SSD_Update_Test(void)
     obdFill(&obd, 0, 0);
 
     // string
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 118, "Only Test Don't Commit.", 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 22, "Only Test Don't Commit.", 1);
     
     // time
     System_snprintf(buf, 32, "%02d:%02d", sec, sec);
-    obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_64, 12, 28+70, buf, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&DSEG7_Classic_Regular_80, 8, 24+80+5, buf, 1);
     sec = (sec + 1) % 60;
     
     // edian and invent 
@@ -457,22 +444,22 @@ void EPD_SSD_Update_Test(void)
     }
 
     // full or fast update 
-    EPD_2IN13_BW(EPD_WIDTH, EPD_HEIGHT, 0, 0, upd_type == 0);
+    EPD_2IN9_BW(EPD_WIDTH, EPD_HEIGHT, 0, 0, upd_type == 0);
 #if 1
     if (upd_type == 2){
-        EPD_2IN13_Lut(lut_part_bw);
+        EPD_2IN9_Lut(lut_part_bw);
     }
 #endif
     
-    EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+    EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
     if (upd_type == 0) {
-        EPD_2IN13_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+        EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
     }
     
     // show
-    EPD_2IN13_Display(upd_type==0?0xf7:0xcf);    // c7: by REG  f7: by OTP   b1: no display 
+    EPD_2IN9_Display(upd_type==0?0xf7:0xcf);    // c7: by REG  f7: by OTP   b1: no display 
     EPD_SSD_WaitBusy(15*1000);
-    EPD_2IN13_Sleep();
+    EPD_2IN9_Sleep();
     return;
 
 }

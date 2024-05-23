@@ -15,6 +15,15 @@
 #define EPD_SCL_PIN             IOID_6
 #define EPD_SDA_PIN             IOID_5
 
+#if defined(EPD_2IN13_SSD1680) || \
+    defined(EPD_2IN13_SSD1680_BW)
+#define EPD_LED1_PIN            IOID_13
+#define EPD_LED2_PIN            IOID_12
+#else
+#define EPD_LED1_PIN            IOID_4
+#define EPD_LED2_PIN            IOID_3
+#endif
+
 // EPD Frame buffer MAX size
 #define EPD_BUF_MAX (300 * 128 / 8)
 extern uint8_t epd_buffer[EPD_BUF_MAX];
@@ -125,6 +134,11 @@ uint8_t EPD_BATT_Percent();
 // RTC
 void RTC_SetCollaborate( int8_t rtc_collab );
 int8_t RTC_GetCollaborate();
+
+// LED
+void LED_Blink(uint8_t pin, uint16_t ms);
+void LED_On(uint8_t pin);
+void LED_Off(uint8_t pin);
 
 // SNV
 int EPD_SNV_LoadCfg();
