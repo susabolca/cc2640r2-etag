@@ -221,6 +221,38 @@ void LED_Off(uint8_t io)
     DEV_Digital_Write(io, 1);
 }
 
+void LED_Breathing(uint8_t io)
+{
+    int i,j;
+        for(i=0;i<1000;i++){
+            for(j=0;j<1000;j++){
+                if(i>j){
+                    LED_On(io);
+                    DEV_Delay_us(1);
+                }
+                else
+                {
+                    LED_Off(io);
+                    DEV_Delay_us(1);
+                }
+            }
+        }
+        DEV_Delay_us(10);
+        for(i=0;i<1000;i++){
+                    for(j=0;j<1000;j++){
+                        if(i>j){
+                            LED_Off(io);
+                            DEV_Delay_us(1);
+                        }
+                        else
+                        {
+                            LED_On(io);
+                            DEV_Delay_us(1);
+                        }
+                    }
+                }
+}
+
 // guess the LUT size
 int EPD_SSD_LutDetect()
 {
@@ -491,7 +523,7 @@ void EPD_Init()
 {
     GPIOHandle = PIN_open(&GPIOState, GPIOTable);      
     
-    LED_Blink(EPD_LED1_PIN, 10);
+    LED_Blink(EPD_LED2_PIN, 10);
 
     // test LUT size, different EPD has different LUT size.
     //lut_size = EPD_SSD_LutDetect();

@@ -94,6 +94,11 @@ void TaskEPD_taskFxn(UArg a0, UArg a1)
     
     while (1)
     {
+        uint8_t v = EPD_BATT_Percent();
+        if (v <= 20){
+            LED_Breathing(EPD_LED1_PIN);
+        }
+
         UInt events;
         events = Event_pend(syncEvent, Event_Id_NONE, EPDTASK_EVENT_ALL, ICALL_TIMEOUT_FOREVER);
         
