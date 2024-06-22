@@ -87,7 +87,7 @@ class CLI(object):
     async def _do_cmd(self, client, cmd, payload=None):
         data = [cmd]
 
-        if cmd in [EPD_CMD_MODE, EPD_CMD_DP]:
+        if cmd in [EPD_CMD_MODE, EPD_CMD_DP, EPD_CMD_FILL]:
             data.append(payload)
         elif cmd in [EPD_CMD_CLR, EPD_CMD_RST, EPD_CMD_BW, EPD_CMD_RED]:
             # no need payload
@@ -121,6 +121,13 @@ class CLI(object):
         # display with lut 0
         await self._do_cmd(client, EPD_CMD_DP, 0)
 
+    async def _doFill(self, client, color:int):
+        await self._do_cmd(client, EPD_CMD_RST)
+        time.sleep(2)
+        await self._do_cmd(client, EPD_CMD_FILL, color)
+        await self._do_cmd(client, EPD_CMD_DP, 0)
+        time.sleep(15)
+
     ##############################################################################################################
     # Public CLI commands
     ##############################################################################################################
@@ -153,6 +160,10 @@ class CLI(object):
             rtc = int.from_bytes(value, byteorder="little", signed=False)
             self._logger.info(f"# rtc: {rtc}")
 
+    async def clr(self):
+        async with self._ble_client() as client:
+            await self._do_cmd(client, EPD_CMD_CLR)
+
     async def set_time(self):
         async with self._ble_client() as client:
             epoch = int(round(time.time()))
@@ -171,6 +182,14 @@ class CLI(object):
         async with self._ble_client() as client:
             await self._do_cmd(client, EPD_CMD_MODE, mode)
 
+    # 0: Fill black
+    # 1: Fill red
+    async def fill_color(self, color: int):
+        if color not in [0, 1]:
+            raise ValueError(f"invalid mode: {color}")
+        async with self._ble_client() as client:
+            await self._doFill(client, color)
+
     # image coule be one of the following:
     # 1. image file path
     # 2. image url
@@ -183,6 +202,19 @@ class CLI(object):
             bw, red = image_to_bwr_data(image_path, width=width, height=height)
             await self._upload_image_bwr_data(client, bw, red)
 
+    async def fix_show(self):
+        async with self._ble_client() as client:
+            while(1):
+                await self._do_cmd(client, EPD_CMD_CLR)
+                time.sleep(15)
+                time.sleep(2)
+                await self._doFill(client, 0)
+                time.sleep(2)
+                await self._do_cmd(client, EPD_CMD_CLR)
+                time.sleep(15)
+                time.sleep(2)
+                await self._doFill(client, 1)
+                time.sleep(2)
 
 if __name__ == "__main__":
     fire.Fire(CLI)
