@@ -152,7 +152,7 @@ static void EPD_2IN9_Lut(const unsigned char *lut)
 static int8_t EPD_2IN9_ReadTemp()
 {
     int8_t rc;
-    
+#if 0
     // soft reset
     //EPD_SSD_SendCommand(0x12);
     //EPD_SSD_WaitBusy(100);
@@ -170,9 +170,9 @@ static int8_t EPD_2IN9_ReadTemp()
     EPD_SSD_SendData(0xb9);
 
     // Master Activation
-    //EPD_SSD_SendCommand(0x20);
-    //EPD_SSD_WaitBusy(100);
-
+    EPD_SSD_SendCommand(0x20);
+    EPD_SSD_WaitBusy(100);
+#endif
     // read temperature
     EPD_SSD_SendCommand(0x1b);
     rc = EPD_SSD_ReadData();
@@ -199,8 +199,8 @@ static void EPD_2IN9_BW(int width, int height, int left, int top, bool is_full)
     int h1 = h0 + height/8 - 1;
     
     // soft reset
-    //EPD_SSD_SendCommand(0x12); 
-    //EPD_SSD_WaitBusy();
+    //EPD_SSD_SendCommand(0x12);
+    //EPD_SSD_WaitBusy(100);
 
     // Border Waveform
     EPD_SSD_SendCommand(0x3C); 
@@ -250,8 +250,8 @@ static void EPD_2IN9_BW(int width, int height, int left, int top, bool is_full)
     EPD_SSD_SendData(w1 >> 8);
     
     // Temperature sensor control
-    //EPD_SSD_SendCommand(0x18);
-    //EPD_SSD_SendData(0x80);       // 80: internal sensor 48: external sensor
+    EPD_SSD_SendCommand(0x18);
+    EPD_SSD_SendData(0x80);       // 80: internal sensor 48: external sensor
 }
 
 void EPD_2IN9_WriteRam(uint8_t *image, int width, int height, int left, int top, uint8_t is_red)
@@ -372,7 +372,7 @@ void EPD_SSD_Update_Clock(void)
     }
 
     // temp
-    epd_temperature = EPD_2IN9_ReadTemp();
+    //epd_temperature = EPD_2IN9_ReadTemp();
     const char fmt[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
     System_snprintf(buf, 32, fmt, epd_temperature);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_24, 236, 22, buf, 1);
@@ -403,6 +403,7 @@ void EPD_SSD_Update_Clock(void)
     // show
     EPD_2IN9_Display(upd_type==0?0xf7:0xcf);    // c7: by REG  f7: by OTP   b1: no display
     EPD_SSD_WaitBusy(15*1000);
+    epd_temperature = EPD_2IN9_ReadTemp();
     EPD_2IN9_Sleep();
     return;
 }

@@ -42,7 +42,7 @@ int32_t utc_offset_mins = 8 * 60;       // default is UTC+8
 uint16_t epd_battery = -1;
 
 // in degree celcius, read from EPD.
-int8_t epd_temperature = 0xff;
+int8_t epd_temperature = 0;
 
 // display mode (default is clock)
 uint8_t epd_mode = EPD_MODE_CLOCK;
