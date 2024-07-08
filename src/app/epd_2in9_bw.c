@@ -401,7 +401,7 @@ void EPD_SSD_Update_Clock(void)
     }
 
     // show
-    EPD_2IN9_Display(upd_type==0?0xf7:0xcf);    // c7: by REG  f7: by OTP   b1: no display
+    EPD_2IN9_Display(upd_type==0?0xf7:0xff);    // c7: by REG  f7: by OTP   b1: no display
     EPD_SSD_WaitBusy(15*1000);
     epd_temperature = EPD_2IN9_ReadTemp();
     EPD_2IN9_Sleep();

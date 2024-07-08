@@ -156,7 +156,7 @@ static int8_t EPD_2IN13_ReadTemp()
     // soft reset
     //EPD_SSD_SendCommand(0x12);
     //EPD_SSD_WaitBusy(100);
-
+#if 0
     // Border Waveform
     EPD_SSD_SendCommand(0x3C);
     EPD_SSD_SendData(0x80);
@@ -172,11 +172,10 @@ static int8_t EPD_2IN13_ReadTemp()
     // Master Activation
     //EPD_SSD_SendCommand(0x20);
     //EPD_SSD_WaitBusy(100);
-
+#endif
     // read temperature
     EPD_SSD_SendCommand(0x1b);
     rc = EPD_SSD_ReadData();
-
     return rc;
 }
 
@@ -368,7 +367,7 @@ void EPD_SSD_Update_Clock(void)
 
 #if 1
     // temperature
-    epd_temperature = EPD_2IN13_ReadTemp();
+    //epd_temperature = EPD_2IN13_ReadTemp();
     char fmte[] = {'%', '3', 'u', 0xb0, 'c', '\0'};   // degrees celsius
     System_snprintf(buf, 32, fmte, epd_temperature);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 154, 118, buf, 1);
@@ -414,8 +413,9 @@ void EPD_SSD_Update_Clock(void)
     }
 
     // show
-    EPD_2IN13_Display(upd_type==0?0xf7:0xcf);    // c7: by REG  f7: by OTP   b1: no display 
+    EPD_2IN13_Display(upd_type==0?0xf7:0xff);    // c7: by REG  f7: by OTP   b1: no display 
     EPD_SSD_WaitBusy(15*1000);
+    epd_temperature = EPD_2IN13_ReadTemp();
     EPD_2IN13_Sleep();
     return;
 }
