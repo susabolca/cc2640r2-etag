@@ -181,13 +181,13 @@
 
         case 'bw':
           // write to bw ram
-          console.log(`bw ${data}`)
+          data = data || 0;
           await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BW, data]));
           break;
 
         case 'red':
           // write to bw ram
-          console.log(`red ${data}`)
+          data = data || 0;
           await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_RED, data]));
           break;
 
