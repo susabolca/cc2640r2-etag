@@ -1,0 +1,612 @@
+<html lang="zh-CN">
+<head>
+<style>
+  div {
+    padding: 12px;
+    margin: 2 auto;
+  }
+</style>  
+</head>
+
+
+<body>
+  <script>
+    let bleDevice;
+    let gattServer;
+    let Theservice;
+    let epdService;
+    let epochCharacter;
+
+    async function sleep(ms) {
+      await new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function doConnect() {
+      if (gattServer != null && gattServer.connected) {
+        if (bleDevice != null && bleDevice.gatt.connected)
+          bleDevice.gatt.disconnect();
+      }
+      else {
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: ['C26_'] }],
+          optionalServices: [
+            0xfff0,
+          ],
+          //acceptAllDevices: true 
+        });
+        await bleDevice.addEventListener('gattserverdisconnected', disconnect);
+        await connect();
+      }
+    }
+
+    async function connect() {
+      if (epochCharacter == null) {
+        info("Connect to " + bleDevice.name)
+        gattServer = await bleDevice.gatt.connect();
+        info('> Found GATT server');
+        epdService = await gattServer.getPrimaryService(0xfff0);
+        info('> Found EPD service');
+        epochCharacter = await epdService.getCharacteristic(0xfff1);
+        document.getElementById("btnConnect").innerHTML = 'Disconnect';
+        document.getElementById('etagFn').style.visibility = '';
+      }
+    }
+
+    function disconnect() {
+      bleDevice = null;
+      epdService = null;
+      epochCharacter = null;
+      info('Disconnected.');
+
+      document.getElementById("btnConnect").innerHTML = 'Connect';
+      document.getElementById('etagFn').style.visibility = 'hidden';
+    }
+
+    async function doSetTime() {
+      var epoch = Date.now() / 1000 | 0;
+      var buf = new ArrayBuffer(4);
+      var arr = new Uint32Array(buf);
+      arr[0] = epoch;
+      await epochCharacter.writeValueWithResponse(arr);
+      info("Write unix epoch: " + epoch);
+    }
+
+    async function doReadEtag() {
+      var host_epoch = Date.now() / 1000 | 0;
+
+      // read current time
+      var chr = await epdService.getCharacteristic(0xfff1);
+      var epoch = (await chr.readValue()).getUint32(0, 1);
+
+      // read time zone
+      var chr = await epdService.getCharacteristic(0xfff2);
+      var tz_min = (await chr.readValue()).getInt32(0, 1);
+      info(`# host time: ${host_epoch}, diff (${epoch - host_epoch}) seconds.`);
+      info(`# etag time: ${epoch}, tz: ${tz_min} minutes of UTC.`);
+
+      // battery
+      var chr = await epdService.getCharacteristic(0xfff3);
+      var batt = (await chr.readValue()).getUint16(0, 1);
+
+      // Temperature
+      var chr = await epdService.getCharacteristic(0xfff4);
+      var temp = (await chr.readValue()).getInt8(0, 1);
+      info(`# etag sensor: battery(${batt}mv), temperature(${temp}'C). `);
+
+      // RTC Collaborate
+      var chr = await epdService.getCharacteristic(0xfff5);
+      var rtc_collab = (await chr.readValue()).getInt8(0, 1);
+      info(`# rtc collab: ${rtc_collab} every 1 second.`);
+    }
+
+    async function doRtcCollab() {
+      var col = prompt("对 32.768kHz 晶振补偿频漂，走时快补偿负数，走时慢补偿正数。可选范围 (-8 ~ 8)", 0);
+      if (col == null || col < -8 || col > 8) return;
+      var chr = await epdService.getCharacteristic(0xfff5);
+      var buf = new ArrayBuffer(1);
+      var arr = new Int8Array(buf);
+      arr[0] = parseInt(col);
+      await chr.writeValueWithResponse(arr);
+      info(`write RTC collabration: ${col}`);
+    }
+
+    async function doTest() {
+      var chr = await epdService.getCharacteristic(0xfffe);
+      var buf = new ArrayBuffer(62);
+      var arr = new Int8Array(buf);
+      for (var i = 0; i < arr.length; i++) {
+        arr[i] = i % 8;
+      }
+      await chr.writeValueWithResponse(arr);
+      info(`> write ${arr.length} bytes.`)
+      //var out = await chr.readValue();
+      //console.log(out);
+    }
+
+    async function doCmd(cmd, data) {
+      const epdCmd = {
+        EPD_CMD_CLR: 1,
+        EPD_CMD_MODE: 2,
+        EPD_CMD_BUF: 3,
+        EPD_CMD_BUF_CONT: 4,
+        EPD_CMD_LUT: 5,
+        EPD_CMD_RST: 6,
+        EPD_CMD_BW: 7,
+        EPD_CMD_RED: 8,
+        EPD_CMD_DP: 9,
+        EPD_CMD_FILL: 10,
+        
+        EPD_CMD_BUF_PUT: 11,
+        EPD_CMD_BUF_GET: 12,
+        EPD_CMD_SNV_WRITE: 13,
+        EPD_CMD_SNV_READ: 14,
+
+        EPD_CMD_SAVE_CFG: 15,
+      };
+
+      var chr = await epdService.getCharacteristic(0xfffe);
+      switch (cmd) {
+        case 'read': {
+          var data = await chr.readValue();
+          return data;
+        }
+ 
+        case 'clr':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_CLR]));
+          break;
+
+        case 'mode':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_MODE, data == 'image'?0x01:0x00]));
+          break;
+
+        case 'buf':
+          for (var i = 0; i < data.length; i += 60) {
+            let arr = [(i == 0 ? epdCmd.EPD_CMD_BUF : epdCmd.EPD_CMD_BUF_CONT)];
+            arr.push(...data.slice(i, i + 60));
+            //console.log(arr);
+            await chr.writeValueWithResponse(Uint8Array.from(arr));
+            //info(`> buf at ${i} size ${arr.length}`)
+          }
+          break;
+
+        case 'lut':
+          let arr = [epdCmd.EPD_CMD_LUT];
+          arr.push(...data);
+          await chr.writeValueWithResponse(Uint8Array.from(arr));
+          break;
+
+        case 'rst':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_RST]));
+          break;
+
+        case 'bw':
+          // write to bw ram
+          console.log(`bw ${data}`)
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BW, data]));
+          break;
+
+        case 'red':
+          // write to bw ram
+          console.log(`red ${data}`)
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_RED, data]));
+          break;
+
+        case 'fill':
+          // fill ram with black(0) or red(1)
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_FILL, data == 'red' ? 0x01:0x00]));
+          break;
+
+        case 'dp':
+          // show
+          let lut = 0;
+          switch (data) {
+            case 'gray8': 
+              lut = 2;
+              break;
+            case 'user': 
+              lut = 0xff;
+              break;
+            case 'full': 
+            default:
+              lut = 0; 
+          }
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_DP, lut]));
+          break;
+
+        case 'snv_read':
+          // SNV index, read length
+          console.log(`snv read ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_READ, ...data]));
+          break;
+ 
+        case 'snv_write':
+          // SNV index
+          console.log(`snv write ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SNV_WRITE, data]));
+          break;
+        
+        case 'buf_get':
+          // buffer index
+          console.log(`buf get ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_GET, data]));
+          break;
+        
+        case 'buf_put':
+          // buffer index, data ...
+          console.log(`buf put ${data}`);
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_BUF_PUT, ...data]));
+          break;
+        
+        case 'save_cfg':
+          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_SAVE_CFG]));
+          break;
+
+     }
+      info (`> epdCmd.${cmd} done.`)
+    }
+
+    async function doCmdRead(snvId, size) {
+      var out = [];
+      
+      // request SNV read
+      await doCmd('snv_read', [snvId, size]);
+
+      // pull data
+      for (var i=0; i<size; ) {
+        await doCmd('buf_get', i);
+        var data = new Uint8Array((await doCmd('read')).buffer);
+        if (data.byteLength == 0) {
+          break;
+        }
+        // first byte is the data index 
+        i += data.byteLength - 1;
+
+        // add data to out, except the first byte.
+        out.push(...data.slice(1));
+      }
+      return out;
+    }
+
+    let ram_bw = [];
+    let ram_red = [];
+    function doImageGrey(type) {
+      const canvas = document.getElementById('canvas');
+      ram_bw = canvas2grey8(canvas, 'bw');
+      ram_red = canvas2grey8(canvas, 'red');
+    }
+
+    var step = 0;
+    async function doUploadImageGray8() {
+      await doCmd('clr');
+      await sleep(15*1000);
+
+      doImageGrey();
+      for (var i = 0; i < 8; i++) {
+        await doCmd('rst');
+        await sleep(2000);
+        await doUploadImageRam8('bw');
+        await doUploadImageRam8('red');
+        await doCmd('dp', 'gray8');
+        await sleep(8000);
+        step++;
+      }
+      step = 0;
+      info('> Upload done.')
+    }
+    async function doUploadImage(type) {
+      if (type == 'gray8') {
+        await doUploadImageGray8();
+      } else {
+        await doCmd('rst');
+        await sleep(2000);
+        await doUploadImageRam2('bw');
+        await doUploadImageRam2('red');
+        await doCmd('dp', 'full');
+        await sleep(15*1000);
+      }
+    }
+
+    // for screen larger than 296x128, should split to pages.
+    async function doCmdBuffers(type, arr) {
+      let step = 296*128/8;
+      let page = 0;
+      for (var i = 0; i < arr.length; i += step) {
+        let buffer = [];
+        buffer.push(...arr.slice(i, i + step));
+        await doCmd('buf', buffer);
+        await doCmd(type, page++); 
+      }
+    }
+
+    async function doUploadImageRam2(type = 'bw') {
+      const canvas = document.getElementById('canvas');
+      var arr = canvas2bytes(canvas, type = type);
+      //await doCmd('buf', arr);
+      //await doCmd(type)
+      await doCmdBuffers(type, arr);
+    }
+
+    async function doUploadImageRam8(type = 'bw') {
+      var ram = type == 'bw' ? ram_bw : ram_red;
+
+      // grey byte to bit
+      var arr = [];
+      var buffer = [];
+      for (var x = 0; x < ram.length; x++) {
+        const n = ram[x] > step ? 1 : 0;
+        if (type == 'bw') {
+          buffer.push(n ? 0 : 1);
+        } else {
+          buffer.push(n ? 1 : 0);
+        }
+
+        if (buffer.length == 8) {
+          arr.push(parseInt(buffer.join(''), 2));
+          buffer = [];
+        }
+      }
+
+      info(`> write ram ${type} size ${arr.length}, step ${step}`);
+      console.log(arr);
+      //await doCmd('buf', arr);
+      //await doCmd(type)
+      await doCmdBuffers(type, arr);
+    }
+
+    function info(logTXT) {
+      var today = new Date();
+      var time = ("0" + today.getHours()).slice(-2) + ":" + ("0" + today.getMinutes()).slice(-2) + ":" + ("0" + today.getSeconds()).slice(-2) + " : ";
+      document.getElementById("log").innerHTML += time + logTXT + '<br>';
+      console.log(time + logTXT);
+      while ((document.getElementById("log").innerHTML.match(/<br>/g) || []).length > 10) {
+        var logs_br_position = document.getElementById("log").innerHTML.search("<br>");
+        document.getElementById("log").innerHTML = document.getElementById("log").innerHTML.substring(logs_br_position + 4);
+      }
+    }
+
+    async function load_image() {
+      const image_file = document.getElementById('image_file');
+      if (image_file.files.length > 0) {
+        const file = image_file.files[0];
+
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const image = new Image();
+        image.src = URL.createObjectURL(file);
+        image.onload = function (event) {
+          URL.revokeObjectURL(this.src);
+          ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
+          //convert_dithering()
+        }
+      }
+    }
+
+    function clear_canvas() {
+      if (confirm('确认清除屏幕?')) {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    function canvas2bytes(canvas, type = 'bw') {
+      const ctx = canvas.getContext("2d");
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const arr = [];
+      let buffer = [];
+
+      for (let y = 0; y < canvas.height; y += 8) {
+        for (let x = 0; x < canvas.width; x++) {
+          for (let a = 0; a < 8; a++) {
+            const i = (canvas.width * (y + a) + x) * 4;
+            if (type !== 'red') {
+              // 1 for white, 0 for black
+              // black : 0, 0, 0
+              buffer.push(imageData.data[i] === 0 && imageData.data[i + 1] === 0 && imageData.data[i + 2] === 0 ? 0 : 1);
+            } else {
+              // 1 for red, 0 for white
+              buffer.push(imageData.data[i] > 0 && imageData.data[i + 1] === 0 && imageData.data[i + 2] === 0 ? 1 : 0);
+            }
+          }
+          arr.push(parseInt(buffer.join(''), 2));
+          buffer = [];
+        }
+      }
+      return arr;
+    }
+
+    function canvas2grey8(canvas, type = 'bw') {
+      // each px = 4bit black + 4bit red.
+      const ctx = canvas.getContext("2d");
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const arr = [];
+      let buffer = [];
+
+      for (let y = 0; y < canvas.height; y += 8) {
+        for (let x = 0; x < canvas.width; x++) {
+          for (let a = 0; a < 8; a++) {
+            const i = (canvas.width * (y + a) + x) * 4;
+            const R = imageData.data[i];
+            const G = imageData.data[i + 1];
+            const B = imageData.data[i + 2];
+
+            let grey = 0;  // white
+            if (R == 255 && G != 255 && B != 255) { // red
+              grey = (type == 'bw') ? 0 : (510 + 62 - G - B) >> 6;
+            } else { // gray
+              grey = (type == 'bw') ? (255 + 31 - R) >> 5 : 0;
+            }
+            arr.push(grey);
+          }
+        }
+      }
+      return arr;
+    }
+
+    async function doMyLut() {
+      const O = 0b00000000;   // VSS
+      const B = 0b01000000;   // VSH1 for Black
+      const W = 0b10000000;   // VSL  for white
+      const R = 0b11000000;   // VSH2 for Red
+      const lut_gray8 = [
+        //  RP         A         B         C         D  SRAB  SRCD
+        0x00,     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,       // LUTC
+        0x01, R | 0x20, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTR
+        0x00,     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,       // LUTW
+        0x01, B | 0x03, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTB
+        0x01, B | 0x03, 0x00, 0x00, 0x00, 0x01, 0x00,       // LUTB
+      ];
+      await doCmd('lut', lut_gray8);
+    }
+
+    async function doFill(color) {
+        await doCmd('rst');
+        await sleep(2000);
+        await doCmd('fill', color);
+        await doCmd('dp', 'full');
+        await sleep(15*1000);
+    }
+
+    async function doSnvRead(type) {
+      var chr = await epdService.getCharacteristic(0xfffe);
+        if (type == 'cfg') {
+          await doCmd('snv_read', 0x01);
+          await doCmd('buf_get', 0x00);
+          var a = await chr.readValue();
+          console.log(a);
+        }
+    }
+
+    async function doSnvWrite() {
+      //var chr = await epdService.getCharacteristic(0xfffe);
+      await doCmd('buf_put', 0x00);
+      await doCmd('snv_write', 0x80);
+    }
+
+    async function doSnvCfg() {
+      var data = await doCmdRead(0x80, 32);
+      // data to hex string in '0x02x' format, should a zero in front of single digit.
+      var out = data.map(x => (x < 16 ? '0' : '') + x.toString(16)).join(' ');
+      console.log(out);
+    }
+    
+    async function doLutWrite() {
+      var lutId = document.getElementById('lutId').value;
+      lutId = parseInt(lutId);
+      var lut = eval(document.getElementById('lut').value);
+      info(lutId);
+      info(lut);
+
+      await doCmd('buf_put', [0, ...lut]);
+      await doCmd('snv_write', 0x80+lutId);
+    }
+
+    async function doLutRead() {
+      var lutId = document.getElementById('lutId').value;
+      lutId = parseInt(lutId);
+      try {
+        var data = await doCmdRead(0x80+lutId, 35);
+      } catch (e) {
+        info(e);
+        document.getElementById('lut').value = '[]';
+        return;
+      }
+      console.log(data);
+
+      var out = '[\n';
+      // split data to every 7 bytes a group
+      for (var i = 0; i < data.length; i += 7) {
+        var d = data.slice(i, i + 7);
+        out += d.map(x => '0x' + x.toString(16)).join(', ');
+        out += ',\n';
+      }
+      out += ']';
+      document.getElementById('lut').value = out;
+    }
+
+  </script>
+
+  <div>
+    <label> Choose </label>
+    <button id="btnConnect" type="button" onclick="doConnect()">Connect</button>
+  </div>
+  <div id="etagFn" style="visibility:hidden;">
+    <button type="button" onclick="doCmd('mode', 'clock')">时钟模式</button>
+    <button id="btnReadEtag" type="button" onclick="doReadEtag()">ReadEtag</button>
+    <button id="btnSetTime" type="button" onclick="doSetTime()">SetTime</button>
+    <button id="btnRtcCollab" type="button" onclick="doRtcCollab()">RtcCollab</button>
+    <button id="btnTest" type="button" onclick="doTest()">Test</button>
+    <button type="button" onclick="doCmd('save_cfg')">保存设置</button>
+  </div>
+  <div>
+    <button type="button" onclick="doCmd('mode', 'image')">图片模式</button>
+    <button type="button" onclick="doCmd('rst')">rst</button>
+    <button type="button" onclick="doCmd('bw')">bw</button>
+    <button type="button" onclick="doCmd('red')">red</button>
+    <button type="button" onclick="doCmd('dp', 'full')">dp</button>
+    <button type="button" onclick="doMyLut()">LUT</button>
+  </div>
+  <div>
+    <button type="button" onclick="doCmd('clr')">清屏</button>
+    <button type="button" onclick="doFill('black')">全黑</button>
+    <button type="button" onclick="doFill('red')">全红</button>
+  </div>
+  <div id="canvas-box">
+    <input type="file" id="image_file" onchange="load_image()" accept=".png,.jpg,.bmp,.webp,.gif">
+    <br>
+    <canvas id="canvas" width="296" height="152" style="border: black solid 1px;"></canvas>
+    <br>
+    <button onclick="doUploadImage('full')">默认刷新</button>
+    <button onclick="doUploadImage('gray8')">8级灰度</button>
+    <select id="imgLutId">
+      <option value="1">LUT1 (FastRefresh)</option>
+      <option value="2">LUT2 (Grey 8 BWR)</option>
+      <option value="3">LUT3 (User)</option>
+    </select>
+    <button onclick="alert('TBD')">LUT刷新</button>
+    <br>
+  </div>
+
+
+
+  <div>
+    <textarea type="text" id="lut", rows="20", cols="80">
+// Fast Refresh LUT(Lite) for SSD1680a BWR.
+const VSS = 0b00<<6;
+const VSH1= 0b01<<6;
+const VSL = 0b10<<6;
+const VSH2= 0b11<<6;
+[
+//RP    A           B           C           D           SRAB    SRCD
+0x0,    0x0,        0x0,        0x0,        0x0,        0x0,    0x0,  // LUTC
+0x1,    VSL|0x2f,   0x0,        VSH2|0x3f,  0x0,        0x2,    0xa,  // LUTR 
+0x1,    VSL|0x3f,   0x0,        0x0,        0x0,        0x2,    0x0,  // LUTW
+0x1,    VSH1|0x2f,  0x0,        0x0,        0x0,        0x1,    0x0,  // LUTB
+
+//FR    2: 50hz, 3: 75Hz, 4: 100Hz, 5: 125Hz
+0x04,
+
+//EOPT   VGH    VSH1    VSH2     VSL    VCOM
+//      -20v     15v      3v    -15v
+0x22,   0x17,   0x41,   0x94,   0x32,   0x36    
+];
+</textarea>
+    <br>
+    <select id="lutId">
+      <option value="1">LUT1 (FastRefresh)</option>
+      <option value="2">LUT2 (Grey 8 BWR)</option>
+      <option value="3">LUT3 (User)</option>
+    </select>
+    <button type="button" onclick="doLutWrite()">写入</button>
+    <button type="button" onclick="doLutRead()">读出</button>
+  </div>
+  <div id="log">
+    CC2640R2-ETAG Webtool. <br>
+  </div>
+</body>
+
+</html>
