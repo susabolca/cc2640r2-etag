@@ -10,6 +10,10 @@ cc2640r2 电子标签改电子时钟固件.
     - cc2640r2l_2in13_ssd1680_250x122
     
     ![cc2640r2l_2in13_ssd1680_250x122](doc/2in13_bwr.jpg)
+ 
+    - cc2640r2l_2in66_ssd1680a_296x152
+    
+    ![cc2640r2l_2in66_ssd1680a_296x152](doc/2in66_bwr.jpg)
     
     - cc2640r2l_2in9_ssd1680a_296x128 **主要支持**
 

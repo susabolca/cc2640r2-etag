@@ -318,6 +318,10 @@ int8_t RTC_GetCollaborate( void )
 
 #include "epd_2in9_bw.c"
 
+#elif defined(EPD_2IN66_SSD1680A)
+
+#include "epd_2in66.c"
+
 #else
 
 #error "EPD not support."
@@ -372,23 +376,25 @@ void EPD_Command(const uint8_t *cmd, int cmd_len)
 
         // write BW ram
         case EPD_CMD_BW:
+            epd_step_data[0] = cmd[1];      // top
             need_update = 1;
             break;
 
         // write RED ram
         case EPD_CMD_RED:
+            epd_step_data[0] = cmd[1];      // top
             need_update = 1;
             break;
 
         // Display
         case EPD_CMD_DP:
-            epd_step_data[0] = cmd[1];
+            epd_step_data[0] = cmd[1];      // lut
             need_update = 1;
             break;
 
         // fill ram with color
         case EPD_CMD_FILL:
-            epd_step_data[0] = cmd[1];
+            epd_step_data[0] = cmd[1];      // color
             need_update = 1;
             break;
 
@@ -494,7 +500,7 @@ void EPD_Init()
     LED_Blink(EPD_LED1_PIN, 10);
 
     // test LUT size, different EPD has different LUT size.
-    //lut_size = EPD_SSD_LutDetect();
+    lut_size = EPD_SSD_LutDetect();
 
 #if 0
     uint8_t buf[16] = {'a', 'b', 'c', 'd', };
