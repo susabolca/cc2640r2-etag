@@ -322,6 +322,10 @@ int8_t RTC_GetCollaborate( void )
 
 #include "epd_2in66.c"
 
+#elif defined(EPD_4IN2_SSD1683)
+
+#include "epd_4in2.c"
+
 #else
 
 #error "EPD not support."
@@ -500,7 +504,7 @@ void EPD_Init()
     LED_Blink(EPD_LED1_PIN, 10);
 
     // test LUT size, different EPD has different LUT size.
-    lut_size = EPD_SSD_LutDetect();
+    //lut_size = EPD_SSD_LutDetect();
 
 #if 0
     uint8_t buf[16] = {'a', 'b', 'c', 'd', };
