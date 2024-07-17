@@ -329,6 +329,28 @@ static void EPD_2IN9_BWR(int width, int height, int left, int top)
     EPD_SSD_SendData(0x80);       // 80: internal sensor 48: external sensor
 }
 
+void EPD_2IN9_FillRam(uint8_t value, int width, int height, int left, int top, uint8_t is_red)
+{
+    // data size in bytes
+    int size = width*height/8;
+
+    // Set Ram X address
+    EPD_SSD_SendCommand(0x4E); 
+    EPD_SSD_SendData(top & 0xff);
+
+    // Set Ram Y address
+    EPD_SSD_SendCommand(0x4F); 
+    EPD_SSD_SendData(left & 0xff);
+    EPD_SSD_SendData(left >> 8);
+
+    const uint8_t reg = is_red ? 0x26 : 0x24;     // BW: 0x24, Red: 0x26 
+    EPD_SSD_SendCommand(reg);
+    for (int i = 0; i < size; i++) {
+        EPD_SSD_SendData(value);
+    }
+}
+
+
 void EPD_2IN9_WriteRam(uint8_t *image, int width, int height, int left, int top, uint8_t is_red)
 {
     // data size in bytes
@@ -377,8 +399,8 @@ void EPD_2IN9_Clear(void)
 
     // clear
     EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-    EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
-    EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+    EPD_2IN9_FillRam(0xff, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+    EPD_2IN9_FillRam(0x00, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
     // display 
     EPD_2IN9_Display(0xf7);    // c7: by REG  f7: by OTP   b1: no display
@@ -541,11 +563,9 @@ void EPD_2IN9_Update_Image()
         case EPD_CMD_FILL: { // write ram with color
             uint8_t color = epd_step_data[0];
             if (color == 1) {   // red
-                memset(epd_buffer, 0xff, EPD_WIDTH*EPD_HEIGHT/8);
-                EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+                EPD_2IN9_FillRam(0xff, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
             } else {
-                memset(epd_buffer, 0, EPD_WIDTH*EPD_HEIGHT/8);
-                EPD_2IN9_WriteRam(epd_buffer, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+                EPD_2IN9_FillRam(0, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
             }
             break;
         }
