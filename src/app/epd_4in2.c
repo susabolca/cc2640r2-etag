@@ -399,8 +399,8 @@ void EPD_2IN9_Clear(void)
 
     // clear
     EPD_2IN9_BWR(EPD_WIDTH, EPD_HEIGHT, 0, 0);
-    EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
-    EPD_2IN9_WriteRam(NULL, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
+    EPD_2IN9_FillRam(0xff, EPD_WIDTH, EPD_HEIGHT, 0, 0, 0);
+    EPD_2IN9_FillRam(0x00, EPD_WIDTH, EPD_HEIGHT, 0, 0, 1);
 
     // display 
     EPD_2IN9_Display(0xf7);    // c7: by REG  f7: by OTP   b1: no display
