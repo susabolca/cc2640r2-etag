@@ -156,7 +156,13 @@
           break;
 
         case 'mode':
-          await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_MODE, data == 'image'?0x01:0x00]));
+          if (data == 'image') {
+            await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_MODE, 0x01]));
+          } else if (data == 'batt') {
+            await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_MODE, 0x02]));
+          } else {
+            await chr.writeValueWithResponse(Uint8Array.from([epdCmd.EPD_CMD_MODE, 0x00]));
+          }
           break;
 
         case 'buf':
@@ -509,6 +515,7 @@
     <button id="btnReadEtag" type="button" onclick="doReadEtag()">ReadEtag</button>
     <button id="btnSetTime" type="button" onclick="doSetTime()">SetTime</button>
     <button id="btnRtcCollab" type="button" onclick="doRtcCollab()">RtcCollab</button>
+    <button id="btnBattChk" type="button" onclick="doCmd('mode', 'batt')">电池模式</button>
     <button type="button" onclick="doCmd('save_cfg')">保存设置</button>
     </div>
     

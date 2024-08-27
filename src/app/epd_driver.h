@@ -39,6 +39,7 @@ extern uint16_t epd_battery;            // in (3.8) frac, minium value
 extern uint8_t epd_mode;
 #define EPD_MODE_CLOCK      0           // realtime clock 
 #define EPD_MODE_IMG        1           // static image 
+#define EPD_MODE_BATTCHK    2           // battery checker
 
 // TBD: split image display to steps in a dirty way.
 extern uint8_t epd_step;

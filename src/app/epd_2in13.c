@@ -197,7 +197,7 @@ static void EPD_2IN13_BWR(int width, int height, int left, int top)
 {
     // left up corner
     int w0 = EPD_PAD_LEFT + left;
-    int h0 = EPD_PAD_TOP + top;
+    int h0 = EPD_PAD_TOP + top/8;
     
     // right bottom corner
     int w1 = w0 + width - 1;
@@ -244,9 +244,9 @@ void EPD_2IN13_WriteRam(uint8_t *image, int width, int height, int left, int top
     int size = width*height/8;
 
     // Set Ram X address
-    uint8_t x = (top + 8) / 8;
+    uint8_t x = (top + EPD_PAD_TOP) / 8;
     EPD_SSD_SendCommand(0x4E); 
-    EPD_SSD_SendData(x);
+    EPD_SSD_SendData(x & 0xff);
 
     // Set Ram Y address
     uint16_t y = left + EPD_PAD_LEFT;
@@ -466,12 +466,80 @@ void EPD_2IN13_Update_Image()
         epd_step = EPD_CMD_NC;
     }
 }
+
+void EPD_2IN13_BattChecker(void)
+{
+    // get battery by 14 times EPD refresh.
+#define MAX_LOOP_CNT 14
+    static int loop_cnt = 0;
+    if (loop_cnt > MAX_LOOP_CNT) {
+        return;
+    }
+
+    // wakeup EPD
+    EPD_SSD_Reset();
+
+    uint16_t top, left; 
+    if (loop_cnt < 8) {
+        top = (loop_cnt-1)*16; 
+        left = 0;
+    } else {
+        top = (loop_cnt-8)*16; 
+        left = 120;
+    }
+
+    char buf[32];
+    obdCreateVirtualDisplay(&obd, 120, 16, epd_buffer);
+    obdFill(&obd, 0, 0);
+
+    if (loop_cnt == 0) {
+        EPD_2IN13_Clear();
+        goto exit;
+    } else if (loop_cnt == 1) {
+        // show BLE name
+        extern void getBleAdvName(char* buf);
+        getBleAdvName(buf);
+        obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 16, buf, 1);
+    } else {
+        // check battery
+        uint16_t v1 = INTFRAC2MV(epd_battery);
+        uint8_t v2 = EPD_BATT_Percent();
+        System_snprintf(buf, 32, "%x:%4u %3u%%", loop_cnt - 1, v1, v2);
+        obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 0, 16, buf, 1);
+    }
+    
+    // edian and invent 
+    for (int i=0; i<sizeof(epd_buffer); i++) {
+        uint8_t c = epd_buffer[i];
+        epd_buffer[i] = ~ucMirror[c];
+    }
+
+    // full or fast update 
+    EPD_2IN13_BWR(120, 16, left, top);
+    EPD_2IN13_WriteRam(epd_buffer, 120, 16, left, top, 0);
+    EPD_2IN13_WriteRam(NULL, 120, 16, left, top, 1);
+
+    // show
+    EPD_2IN13_Display(0xf7);    // c7: by REG  f7: by OTP   b1: no display 
+    EPD_SSD_WaitBusy(15*1000);
+
+exit:
+    if (++loop_cnt > MAX_LOOP_CNT) {
+        EPD_2IN13_Sleep();
+    }
+}
+
 int EPD_SSD_Update(void)
 {
     if (epd_mode == EPD_MODE_IMG) {
         EPD_2IN13_Update_Image();
         // stop tick clock
         return 0;
+    }
+
+    else if (epd_mode == EPD_MODE_BATTCHK) {
+        EPD_2IN13_BattChecker();
+        return 1;
     }
 
     EPD_SSD_Update_Clock();
